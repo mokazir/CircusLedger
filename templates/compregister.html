@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <form class="text-center" action="/register" method="post">
+        <div class="mb-3">
+            <input autofocus class="form-control mx-auto w-auto" name="name" placeholder="Company Name" type="text">
+        </div>
+        <label class="mb-1">Address</label>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrBnm" placeholder="Bulding Name" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrBno" placeholder="Bulding Number" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrFlno" placeholder="Floor Number" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrSt" placeholder="Street Name" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrLoc" placeholder="Area/Town" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrDist" placeholder="City/District" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrState" placeholder="State" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="addrPncd" placeholder="Pincode" type="text">
+        </div>
+        <label class="mb-1">Contact</label>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="phno1" placeholder="Mobile number" type="text" minlength="10" maxlength="10">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="phno2" placeholder="Phone number (optional)" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="email" placeholder="Email Address" type="email">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="website" placeholder="Website URL" type="url">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="gstin" placeholder="GSTIN" type="text" minlength="15" maxlength="15">
+        </div>
+        <label class="mb-1">Bank Details (Optional)</label>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="bnkAcnm" placeholder="Account Name" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="bnkAcno" placeholder="Account Number" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="bnkNm" placeholder="Bank Name" type="text">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="bnkIfsc" placeholder="IFSC Code" type="text">
+        </div>
+        <div class="mb-3">
+            <textarea class="form-control mx-auto w-auto" name="custTerms" style="height: 100px"></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit">Register Company</button>
+    </form>
+{% endblock %}
