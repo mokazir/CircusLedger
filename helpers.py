@@ -5,6 +5,7 @@
 # import subprocess
 # import urllib
 # import uuid
+from re import match as regexmatch
 
 from flask import redirect, render_template, session
 from functools import wraps
@@ -47,7 +48,7 @@ def login_required(f):
         if session.get("user_id") is None:
             return redirect("/login")
         if session.get("company_id") is None:
-            return redirect("/comregister")
+            return redirect("/compregister")
         return f(*args, **kwargs)
 
     return decorated_function
@@ -94,8 +95,11 @@ def inr(value):
     return f"₹{value:,.2f}"
 
 
-# Function to check a string of phone number for its length to be exactly 10 and it contain strictly numbers from 0-9 only
+# Check a string of phone number for its length to be exactly 10 and it only contains numbers from 0-9 only
+def validate_phno(phone_number):
+     return phone_number.isdecimal() and len(phone_number) == 10
 
 
-
-# Function to check a string of email to be valid with regular expressions
+# Check a string of email to be valid
+def validate_email(email):
+    return regexmatch(r'^[a-zA-Z0-9!#$%&\'*+/=?^_`{|}~.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email) is not None

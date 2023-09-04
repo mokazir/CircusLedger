@@ -5,7 +5,13 @@ from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, inr  # validate_phno  # lookup
+from helpers import (
+    apology,
+    login_required,
+    inr,
+    validate_phno,
+    validate_email,
+)  # lookup
 
 # Configure application
 app = Flask(__name__)
@@ -169,6 +175,7 @@ def register():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
+        flash("This page is only for admins who wants to register themselves and will be followed by a company registration form. For user registration, please contact your company admin. Thank you!")
         return render_template("register.html")
 
 
@@ -229,7 +236,7 @@ def compregister():
         # Can be NULL fields
         # Collect all the optional fields
         compreg["addrBnm"] = request.form.get("addrBnm")
-        compreg["Flno"] = request.form.get("Flno")
+        compreg["addrFlno"] = request.form.get("addrFlno")
         compreg["phno2"] = request.form.get("phno2")
         compreg["email"] = request.form.get("email")
         compreg["website"] = request.form.get("website")
@@ -237,57 +244,104 @@ def compregister():
         compreg["bnkAcno"] = request.form.get("bnkAcno")
         compreg["bnkNm"] = request.form.get("bnkNm")
         compreg["bnkIfsc"] = request.form.get("bnkIfsc")
+        compreg["custTerms"] = request.form.get("custTerms")
 
         # UNIQUE fields
-
+        # Validate mobile number and check if it exists
         # Check for a valid mobile number
         valid = validate_phno(compreg["phno1"])
         if not valid:
             return apology("Invalid mobile number")
 
-        # Done until here
-
         # Query database for phno1
         compregphno1 = db.execute(
-            "SELECT * FROM companies WHERE phno1 = ?", request.form.get("phno1")
+            "SELECT * FROM companies WHERE phno1 = ?", compreg["phno1"]
         )
 
-        # Check username exists
+        # Check phno1 exists
         if len(compregphno1) == 1:
-            return apology("Username already exsists")
+            return apology("Phone number already registered")
 
-        # Ensure password was submitted
-        regemail = request.form.get("email")
-        if not regemail:
-            return apology("must provide Email Address")
+        # Validate email address and check if it exists
+        # Check for a valid email address
+        valid = validate_email(compreg["email"])
+        if not valid:
+            return apology("Invalid email address")
 
-        # Ensure password was submitted
-        regpassword = request.form.get("password")
-        if not regpassword:
-            return apology("must provide password")
-
-        # Ensure confirmation was submitted
-        regconfirm = request.form.get("confirmation")
-        if not regconfirm:
-            return apology("must provide password (again)")
-
-        if not regpassword == regconfirm:
-            return apology("password must be same")
-
-        regid = db.execute(
-            "INSERT INTO users (username, email, hash, phno, type) VALUES(?, ?, ?, ?, ?)",
-            regusername,
-            regemail,
-            generate_password_hash(regpassword),
-            request.form.get("phno"),
-            "admin",
+        # Query database for email
+        compregemail = db.execute(
+            "SELECT * FROM companies WHERE email = ?", compreg["email"]
         )
 
-        # Remember which user has logged in
-        session["user_id"] = regid
+        # Check email exists
+        if len(compregemail) == 1:
+            return apology("Email already registered")
+
+        # Check if GSTIN already exists
+        # Query database for gstin
+        compreggstin = db.execute(
+            "SELECT * FROM companies WHERE gstin = ?", compreg["gstin"]
+        )
+
+        # Check gstin exists
+        if len(compreggstin) == 1:
+            return apology("GSTIN already registered")
+
+        # Check if Bank account number already exists
+        # Query database for bank account number
+        compregbnkAcno = db.execute(
+            "SELECT * FROM companies WHERE bnkAcno = ?", compreg["bnkAcno"]
+        )
+
+        # Check bank account number exists
+        if len(compregbnkAcno) == 1:
+            return apology("Bank account number already registered")
+
+        # Done until here
+
+        regcompid = db.execute(
+            "INSERT INTO companies (name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, email, website, gstin, bnkAcnm, bnkAcno, bnkNm, bnkIfsc, custTerms) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            compreg["name"],
+            compreg["addrBnm"],
+            compreg["addrBno"],
+            compreg["addrFlno"],
+            compreg["addrSt"],
+            compreg["addrLoc"],
+            compreg["addrDist"],
+            compreg["addrState"],
+            compreg["addrPncd"],
+            compreg["phno1"],
+            compreg["phno2"],
+            compreg["email"],
+            compreg["website"],
+            compreg["gstin"],
+            compreg["bnkAcnm"],
+            compreg["bnkAcno"],
+            compreg["bnkNm"],
+            compreg["bnkIfsc"],
+            compreg["custTerms"],
+        )
+
+        # Check if company is registered
+        if not regcompid:
+            return apology("Something went wrong")
+
+        # Remember which company is user related to
+        session["company_id"] = regcompid
+
+        # Update user with company id
+        regcompuserupdate = db.execute(
+            "UPDATE users SET company_id = ? WHERE id = ?",
+            regcompid,
+            session["user_id"],
+        )
+
+        # Check if user is updated with company_id
+        if not regcompuserupdate:
+            return apology("Something went wrong")
 
         # Redirect user to home page
-        flash("User successfully registered")
+        flash("Company is successfully registered")
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
