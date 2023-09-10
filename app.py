@@ -27,6 +27,14 @@ Session(app)
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///circusledger.db")
 
+# Fetch state_codes from db
+db_state_codes = db.execute("SELECT * FROM state_codes")
+
+# Convert db_state_codes to dict where value are tuple of tin and state_code
+state_codes = {}
+for i in db_state_codes:
+    state_codes[i["state_name"]] = (i["tin"], i["state_code"])
+
 
 @app.after_request
 def after_request(response):
@@ -113,7 +121,32 @@ def logout():
 @login_required
 def quote():
     """Get stock quote."""
-    return apology("TODO")
+    # User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+        stockquote = lookup(request.form.get("symbol"))
+        if stockquote != None:
+            return render_template("quoted.html", quote=stockquote)
+        return apology("invalid symbol")
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("quote.html")
+
+
+@app.route("/invoice", methods=["GET", "POST"])
+@login_required
+def invoice():
+    """Get stock quote."""
+    # User reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+        stockquote = lookup(request.form.get("symbol"))
+        if stockquote != None:
+            return render_template("quoted.html", quote=stockquote)
+        return apology("invalid symbol")
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("invoice.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -175,7 +208,9 @@ def register():
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        flash("This page is only for admins who wants to register themselves and will be followed by a company registration form. For user registration, please contact your company admin. Thank you!")
+        flash(
+            "This page is only for admins who wants to register themselves and will be followed by a company registration form. For user registration, please contact your company admin. Thank you!"
+        )
         return render_template("register.html")
 
 
@@ -353,4 +388,14 @@ def compregister():
 @login_required
 def sell():
     """Sell shares of stock"""
+    return apology("TODO")
+
+
+@app.route("/result", methods=["POST"])
+@login_required
+def result():
+    """Generate a pdf of quotation"""
+    # amount = request.form.getlist("amount")
+    # print(amount)
+    # print('okay')
     return apology("TODO")

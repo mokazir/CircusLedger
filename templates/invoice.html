@@ -1,0 +1,162 @@
+{% extends "layout.html" %} {% block title %} Invoice {% endblock %} {% block main %}
+<!-- div of forms with S.No, Description of goods, HSN/SAC, Qty, UOM, Rate, Amount, GST  with rows and columns-->
+<form action="/result" method="post" class="text-center" id="invoiceform">
+	<div id="invoiceformlist">
+		<div class="row">
+			<div class="col-md-2">Invoice number</div>
+			<div class="col-md">{{ invoice_num }}</div>
+		</div>
+		<div class="row mt-3">
+			<div class="col-md-2">Invoice date</div>
+			<div class="col-md">{{ invoice_date }}</div>
+		</div>
+		<div class="row mt-3"><label class="col col-form-label">Client Details</label></div>
+		<div class="row mt-3 gx-1">
+			<label class="col-md-12 col-form-label">Billed to</label>
+			<label for="billedcompanyname" class="col-md-1 col-form-label">Name</label>
+			<div class="col-md-2">
+				<input type="text" class="form-control" id="billedcompanyname" name="billed_to" placeholder="Client Name" />
+			</div>
+			<label class="col-md-1 col-form-label">Mobile No.</label>
+			<div class="col-md-2">
+				<input class="form-control" id="bphno" name="bphno" placeholder="Mobile number" type="text" />
+			</div>
+			<label class="col-md-1 col-form-label">Alt. Number</label>
+			<div class="col-md-2">
+				<input class="form-control" id="bphno1" name="bphno1" placeholder="Alternate Mobile number" type="text" />
+			</div>
+			<label class="col-md-1 col-form-label">GSTIN</label>
+			<div class="col-md-2">
+				<input class="form-control" name="bgstin" placeholder="GSTIN" type="text" />
+			</div>
+			<label class="col-md-12 col-form-label">Billing Address</label>
+			<div class="col-md">
+				<input class="form-control" id="baddrBnm" name="baddrBnm" placeholder="Bulding Name" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrBno" name="baddrBno" placeholder="Bulding Number" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrFlno" name="baddrFlno" placeholder="Floor Number" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrSt" name="baddrSt" placeholder="Street Name" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrLoc" name="baddrLoc" placeholder="Area/Town" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrDist" name="baddrDist" placeholder="City/District" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrState" name="baddrState" placeholder="State" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="baddrPncd" name="baddrPncd" placeholder="Pincode" type="text" />
+			</div>
+		</div>
+		<div class="row mt-3 gx-1">
+			<label class="col-md-12 col-form-label">Shipped to</label>
+			<label for="shippedcompanyname" class="col-md-1 col-form-label">Name</label>
+			<div class="col-md-3">
+				<input type="text" class="form-control" id="shippedcompanyname" name="shipped_to" placeholder="Client Name" />
+			</div>
+			<label class="col-md-1 col-form-label">Mobile No.</label>
+			<div class="col-md-3">
+				<input class="form-control" id="sphno" name="sphno" placeholder="Mobile number" type="text" />
+			</div>
+			<label class="col-md-1 col-form-label">Alt. Number</label>
+			<div class="col-md-3">
+				<input class="form-control" id="sphno1" name="sphno1" placeholder="Alternate Mobile number" type="text" />
+			</div>
+			<div class="col-md-12">
+				<div class="form-check">
+					<input class="form-check-input float-none" type="checkbox" value="" id="billinginfo" />
+					<label class="form-check-label" for="billinginfo">Same as billing info</label>
+				</div>
+			</div>
+			<label class="col-md-12 col-form-label">Shipping Address</label>
+			<div class="col-md">
+				<input class="form-control" id="saddrBnm" name="saddrBnm" placeholder="Bulding Name" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrBno" name="saddrBno" placeholder="Bulding Number" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrFlno" name="saddrFlno" placeholder="Floor Number" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrSt" name="saddrSt" placeholder="Street Name" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrLoc" name="saddrLoc" placeholder="Area/Town" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrDist" name="saddrDist" placeholder="City/District" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrState" name="saddrState" placeholder="State" type="text" />
+			</div>
+			<div class="col-md">
+				<input class="form-control" id="saddrPncd" name="saddrPncd" placeholder="Pincode" type="text" />
+			</div>
+			<div class="col-md-12">
+				<div class="form-check">
+					<input class="form-check-input float-none" type="checkbox" value="" id="billingaddress" />
+					<label class="form-check-label" for="billingaddress">Same as billing address</label>
+				</div>
+			</div>
+		</div>
+		<div class="row mt-3" id="invoicelistofgoods">
+			<label class="col-md-12 col-form-label">List of goods</label>
+			<div class="d-none d-md-flex">
+				<div class="col-md-1">S.No</div>
+				<div class="col-md">Description of goods</div>
+				<div class="col-md-1">HSN/SAC</div>
+				<div class="col-md-1">Qty</div>
+				<div class="col-md-1">UOM</div>
+				<div class="col-md-1">Rate</div>
+				<div class="col-md-1">Amount</div>
+				<div class="col-md-1">GST</div>
+			</div>
+		</div>
+		<!-- <div class="row g-1 d-none" id="quotelisttemplate">
+			<div class="col mt-3 text-center d-lg-none">Item.No</div>
+			<div class="col-md-1">
+				<input class="form-control" type="number" name="sno" id="sno" placeholder="S.No" value="0" disabled />
+			</div>
+			<div class="col-md">
+				<input class="form-control" type="text" name="desc" placeholder="Description of goods" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="hsn_sac" placeholder="HSN/SAC" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="qty" id="qty" placeholder="Qty" value="" />
+			</div>
+			<div class="col-md-1"><input class="form-control" type="text" name="uom" placeholder="UOM" value="" /></div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="rate" id="rate" placeholder="Rate" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="amount" id="amount" placeholder="Amount" value="" />
+			</div>
+			<div class="col-md-1"><input class="form-control" type="text" name="gst" placeholder="GST" value="" /></div>
+		</div> -->
+	</div>
+	<div class="row mt-3 g-2">
+		<div class="col-md">
+			<button class="btn btn-outline-dark btn-sm w-100" id="invoiceaddrow" type="button">+</button>
+		</div>
+		<div class="col-md">
+			<button class="btn btn-outline-dark btn-sm w-100" id="invoiceremoverow" type="button">-</button>
+		</div>
+	</div>
+	<div class="row mt-3">
+		<div class="col-md">
+			<button class="btn btn-dark btn-sm w-100" type="submit">Generate Invoice</button>
+		</div>
+	</div>
+</form>
+<script src="/static/invoice.js"></script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "layout.html" %} {% block title %} Quote {% endblock %} {% block main %}
+<!-- div of forms with S.No, Description of goods, HSN/SAC, Qty, UOM, Rate, Amount, GST  with rows andumns-->
+<form action="/result" method="post" class="text-center" id="quoteform">
+	<div id="quoteformlist">
+		<div class="row">
+			<div class="col-md-2">Quotation number</div>
+			<div class="col-md">{{ quote_num }}</div>
+		</div>
+		<div class="row mt-3">
+			<div class="col-md-2">Quotation date</div>
+			<div class="col-md">{{ quote_date }}</div>
+		</div>
+		<div class="row mt-3">
+			<label for="inputcompanyname" class="col-md-2 col-form-label">Quoted to</label>
+			<div class="col-md">
+				<input type="text" class="form-control" id="inputcompanyname" name="quoted_to" placeholder="Client Name" />
+			</div>
+		</div>
+		<div class="row mt-3 text-center g-1 d-none d-lg-flex">
+			<div class="col-md-1">S.No</div>
+			<div class="col-md">Description of goods</div>
+			<div class="col-md-1">HSN/SAC</div>
+			<div class="col-md-1">Qty</div>
+			<div class="col-md-1">UOM</div>
+			<div class="col-md-1">Rate</div>
+			<div class="col-md-1">Amount</div>
+			<div class="col-md-1">GST</div>
+		</div>
+		<!-- <div class="row g-1 d-none" id="quotelisttemplate">
+			<div class="col mt-3 text-center d-lg-none">Item.No</div>
+			<div class="col-md-1">
+				<input class="form-control" type="number" name="sno" id="sno" placeholder="S.No" value="0" disabled />
+			</div>
+			<div class="col-md">
+				<input class="form-control" type="text" name="desc" placeholder="Description of goods" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="hsn_sac" placeholder="HSN/SAC" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="qty" id="qty" placeholder="Qty" value="" />
+			</div>
+			<div class="col-md-1"><input class="form-control" type="text" name="uom" placeholder="UOM" value="" /></div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="rate" id="rate" placeholder="Rate" value="" />
+			</div>
+			<div class="col-md-1">
+				<input class="form-control" type="text" name="amount" id="amount" placeholder="Amount" value="" />
+			</div>
+			<div class="col-md-1"><input class="form-control" type="text" name="gst" placeholder="GST" value="" /></div>
+		</div> -->
+	</div>
+	<div class="row mt-3 g-2">
+		<div class="col-md">
+			<button class="btn btn-outline-dark btn-sm w-100" id="quoteaddrow" type="button">+</button>
+		</div>
+		<div class="col-md">
+			<button class="btn btn-outline-dark btn-sm w-100" id="quoteremoverow" type="button">-</button>
+		</div>
+	</div>
+	<div class="row mt-3">
+		<div class="col-md">
+			<button class="btn btn-dark btn-sm w-100" type="submit">Generate Quotation</button>
+		</div>
+	</div>
+</form>
+<script src="/static/quote.js"></script>
+{% endblock %}
