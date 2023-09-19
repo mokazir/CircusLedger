@@ -45,14 +45,14 @@
 				</button>
 				<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 					{% if session["user_id"] and session["company_id"] %}
-					<div class="navbar-nav m-auto mt-2">
-						<a class="nav-link" href="/index">Home</a>
+					<div class="navbar-nav mx-auto mt-2">
+						<a class="nav-link" href="/">Home</a>
 						<a class="nav-link" href="/quote">Quote</a>
 						<a class="nav-link" href="/invoice">Invoice</a>
 						<a class="nav-link" href="/inventory">Inventory</a>
 						<a class="nav-link" href="/history">History</a>
 					</div>
-					<div class="navbar-nav ms-auto mt-2">
+					<div class="navbar-nav mt-2">
 						<a class="nav-link" href="/settings">Settings</a>
 						<a class="nav-link" href="/logout">Log Out</a>
 					</div>

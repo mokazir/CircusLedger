@@ -1,0 +1,70 @@
+{% extends "layout.html" %} {% block title %} Home {% endblock %} {% block main %}
+<div class="text-center">
+	<h2>Lastest Invoices</h2>
+</div>
+<div class="table-responsive">
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">Invoice Number</th>
+				<th scope="col">Invoice Date</th>
+				<th scope="col">Invoiced to</th>
+				<th scope="col">Shipped to</th>
+				<th scope="col">Transportation Mode</th>
+				<th scope="col">Payment Mode</th>
+				<th scope="col">ETA</th>
+				<th scope="col">List of goods</th>
+				<th scope="col">Amount</th>
+				<th scope="col">PDF</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for invoice in invoice_list %}
+			<tr>
+				<th scope="row">{{ invoice.invoice_number }}</th>
+                <td>{{ invoice.invoice_date }}</td>
+                <td>{{ invoice.billed_to }}</td>
+                <td>{{ invoice.shipped_to }}</td>
+                <td>{{ invoice.transportation_mode }}</td>
+                <td>{{ invoice.payment_mode }}</td>
+                <td>{{ invoice.eta }}</td>
+                <td>{{ invoice.list_of_goods }}</td>
+                <td>{{ invoice.amount }}</td>
+                <td><a href="{{ invoice.pdf }}">PDF</a></td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+<div class="text-center  mt-5">
+	<h2>Lastest Quotations</h2>
+</div>
+<div class="table-responsive">
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">Quotation Number</th>
+				<th scope="col">Quotation Date</th>
+				<th scope="col">Quoted to</th>
+				<th scope="col">ETA</th>
+				<th scope="col">List of goods</th>
+				<th scope="col">Amount</th>
+				<th scope="col">PDF</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for quotation in quotation_list %}
+			<tr>
+				<th scope="row">{{ quotation.invoice_number }}</th>
+                <td>{{ quotation.invoice_date }}</td>
+                <td>{{ quotation.billed_to }}</td>
+                <td>{{ quotation.eta }}</td>
+                <td>{{ quotation.list_of_goods }}</td>
+                <td>{{ quotation.amount }}</td>
+                <td><a href="{{ quotation.pdf }}">PDF</a></td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}

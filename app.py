@@ -30,10 +30,10 @@ db = SQL("sqlite:///circusledger.db")
 # Fetch state_codes from db
 db_state_codes = db.execute("SELECT * FROM state_codes")
 
-# Convert db_state_codes to dict where value are tuple of tin and state_code
+# Convert db_state_codes to dict where key is state_name and value is dict of key tin and key state_code
 state_codes = {}
 for i in db_state_codes:
-    state_codes[i["state_name"]] = (i["tin"], i["state_code"])
+    state_codes[i["state_name"]] = {"tin": i["tin"], "state_code": i["state_code"]}
 
 
 @app.after_request
@@ -49,8 +49,13 @@ def after_request(response):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    return apology("TODO")
+    return render_template("index.html")
 
+@app.route("/settings")
+@login_required
+def settings():
+    """Show settings options"""
+    return render_template("settings.html")
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -62,8 +67,14 @@ def buy():
 @app.route("/history")
 @login_required
 def history():
-    """Show history of transactions"""
-    return apology("TODO")
+    """Show billing history of the company"""
+    return render_template("history.html")
+
+@app.route("/inventory")
+@login_required
+def inventory():
+    """Show Inventory and beneficiaries of the company"""
+    return render_template("inventory.html")
 
 
 @app.route("/login", methods=["GET", "POST"])

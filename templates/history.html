@@ -1,0 +1,38 @@
+{% extends "layout.html" %} {% block title %} History {% endblock %} {% block main %}
+<div class="table-responsive" id="history">
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">Invoice Number</th>
+				<th scope="col">Invoice Date</th>
+				<th scope="col">Transaction type</th>
+				<th scope="col">Invoiced/Quoted to</th>
+				<th scope="col">Shipped to</th>
+				<th scope="col">Transportation Mode</th>
+				<th scope="col">Payment Mode</th>
+				<th scope="col">ETA</th>
+				<th scope="col">List of goods</th>
+				<th scope="col">Amount</th>
+				<th scope="col">PDF</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for history in history_list %}
+			<tr>
+				<th scope="row">{{ history.invoice_number }}</th>
+				<td>{{ history.invoice_date }}</td>
+				<td>{{ history.transaction_type }}</td>
+				<td>{{ history.billed_to }}</td>
+                <td>{{ history.shipped_to }}</td>
+                <td>{{ history.transportation_mode }}</td>
+                <td>{{ history.payment_mode }}</td>
+                <td>{{ history.eta }}</td>
+                <td>{{ history.list_of_goods }}</td>
+                <td>{{ history.amount }}</td>
+                <td><a href="{{ history.pdf }}">PDF</a></td>
+			</tr>
+            {% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}

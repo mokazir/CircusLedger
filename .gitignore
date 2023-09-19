@@ -59,12 +59,10 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-*.db
 
 # Flask stuff:
 instance/
 .webassets-cache
-flask_session
 
 # Scrapy stuff:
 .scrapy
@@ -125,4 +123,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# personal addition
+flask_session
 test*

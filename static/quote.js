@@ -1,23 +1,37 @@
 document.addEventListener("DOMContentLoaded", () => {
-	// sno has be initialized to 0 and tweaked later
-	let sno = 1;
-	const quoteform = document.getElementById("quoteform");
-	const quoteformlist = document.getElementById("quoteformlist");
-	const quoteaddrow = document.getElementById("quoteaddrow");
-	const quoteremoverow = document.getElementById("quoteremoverow");
+	// serialNumber has be initialized to 0 and tweaked later
+	let serialNumber = 1;
+	const quoteForm = document.getElementById("quote-form");
+	const quoteListOfGoods = document.getElementById("quote-list-of-goods");
+	const quoteAddRow = document.getElementById("quote-add-row");
+	const quoteRemoveRow = document.getElementById("quote-remove-row");
+	const totalAmount = document.getElementById("total-amount");
 
 	// Cache frequently accessed elements
 	const qtyElements = [];
 	const rateElements = [];
 	const amountElements = [];
 
+	// Event listener for input changes
+	quoteForm.addEventListener("input", handleInputChange);
+
+	// Event listener for click events
+	quoteForm.addEventListener("click", handleClick);
+
 	// Generate the first row
-	const generateRow = () => {
+	generateRow();
+
+	/**
+	 * Generates a new row of HTML elements for the invoice list of goods.
+	 *
+	 * @return {void} This function does not return a value.
+	 */
+	function generateRow() {
 		const rowHTML = `
-		<div class="row g-1" id="quote${sno}">
-			<div class="col mt-3 text-center d-lg-none">Item.No</div>
+		<div class="row g-1" id="quote${serialNumber}">
+			<div class="col text-center d-lg-none">Item.No</div>
 			<div class="col-md-1">
-				<input class="form-control" type="number" name="sno" id="sno" placeholder="S.No" value="${sno}" disabled />
+				<input class="form-control" type="number" name="serialNumber" id="serialNumber" placeholder="S.No" value="${serialNumber}" disabled />
 			</div>
 			<div class="col-md">
 				<input class="form-control" type="text" name="desc" placeholder="Description of goods" value="" list="icf" />
@@ -26,90 +40,83 @@ document.addEventListener("DOMContentLoaded", () => {
 				<input class="form-control" type="text" name="hsn_sac" placeholder="HSN/SAC" value="" />
 			</div>
 			<div class="col-md-1">
-				<input class="form-control" type="text" name="qty" id="qty${sno}" placeholder="Qty" value="" />
+				<input class="form-control" type="text" name="qty" id="qty${serialNumber}" placeholder="Qty" value="" />
 			</div>
 			<div class="col-md-1"><input class="form-control" type="text" name="uom" placeholder="UOM" value="" /></div>
 			<div class="col-md-1">
-				<input class="form-control" type="text" name="rate" id="rate${sno}" placeholder="Rate" value="" />
+				<input class="form-control" type="text" name="rate" id="rate${serialNumber}" placeholder="Rate" value="" />
 			</div>
 			<div class="col-md-1">
-				<input class="form-control" type="text" name="amount" id="amount${sno}" placeholder="Amount" value="" />
+				<input class="form-control" type="text" name="amount" id="amount${serialNumber}" placeholder="Amount" value="" />
 			</div>
 			<div class="col-md-1"><input class="form-control" type="text" name="gst" placeholder="GST" value="" /></div>
 		</div>
 		`;
-		quoteformlist.insertAdjacentHTML("beforeend", rowHTML);
-
-		// const parser = new DOMParser();
-		// const doc = parser.parseFromString(rowHTML, "text/html");
-		// quoteformlist.append(doc.body);
+		quoteListOfGoods.insertAdjacentHTML("beforeend", rowHTML);
 
 		// Cache elements for the new row
-		qtyElements[sno] = document.getElementById(`qty${sno}`);
-		// console.log(qtyElements);
-		rateElements[sno] = document.getElementById(`rate${sno}`);
-		amountElements[sno] = document.getElementById(`amount${sno}`);
+		qtyElements[serialNumber] = document.getElementById(`qty${serialNumber}`);
+		rateElements[serialNumber] = document.getElementById(`rate${serialNumber}`);
+		amountElements[serialNumber] = document.getElementById(`amount${serialNumber}`);
 
-		sno++;
-	};
+		serialNumber++;
+	}
 
-	// const generateRow = () => {
-	// 	const newTemplate = quotelisttemplate.cloneNode(true);
-	// 	newTemplate.classList.remove("d-none");
-	// 	newTemplate.setAttribute("id", `quote${sno}`);
-	// 	newTemplate.children[1].firstElementChild.value = parseInt(newTemplate.children[1].firstElementChild.value) + sno;
-	// 	newTemplate.children[4].firstElementChild.id = `qty${sno}`;
-	// 	newTemplate.children[6].firstElementChild.id = `rate${sno}`;
-	// 	newTemplate.children[7].firstElementChild.id = `amount${sno}`;
-	// 	quoteformlist.appendChild(newTemplate);
-
-	// 	// Cache elements for the new row
-	// 	qtyElements[sno] = newTemplate.children[4].firstElementChild;
-	// 	rateElements[sno] = newTemplate.children[6].firstElementChild;
-	// 	amountElements[sno] = newTemplate.children[7].firstElementChild;
-
-	// 	sno++;
-	// };
-
-	generateRow();
-	quoteformlist.addEventListener("keyup", (e) => {
-		const target = e.target;
-		if (!target.matches("[id^='qty']") && !target.matches("[id^='rate']")) {
-			return;
+	/**
+	 * Handles the input change event.
+	 *
+	 * @param {Event} event - The input change event object.
+	 */
+	function handleInputChange(event) {
+		const target = event.target;
+		if (target.matches("[id^='qty']") || target.matches("[id^='rate']")) {
+			updateAmount(target);
+			updateTotalAmount();
 		}
-		const rowId = parseInt(target.id.match(/\d+/)[0]);
-		// console.log(rowId);
+	}
 
-		if (qtyElements[rowId].value && rateElements[rowId].value) {
-			let amount = qtyElements[rowId].value * rateElements[rowId].value;
-			amountElements[rowId].value = amount.toFixed(2);
-		} else {
-			amountElements[rowId].value = "";
-		}
-	});
-
-	quoteform.addEventListener("click", (e) => {
-		const target = e.target;
-		// console.log(target);
-		// console.log(quoteaddrow);
-		if (target === quoteaddrow) {
+	/**
+	 * Handles the click event.
+	 *
+	 * @param {Event} event - The click event object.
+	 */
+	function handleClick(event) {
+		const target = event.target;
+		if (target === quoteAddRow) {
 			generateRow();
-		} else if (target === quoteremoverow && sno > 2) {
-			quoteformlist.removeChild(quoteformlist.lastElementChild);
-			sno--;
+		} else if (target === quoteRemoveRow && serialNumber > 2) {
+			quoteListOfGoods.removeChild(quoteListOfGoods.lastElementChild);
+			serialNumber--;
 		}
-	});
+	}
 
-	// // Function to add a row
-	// quoteaddrow.addEventListener("click", () => {
-	// 	generateRow();
-	// });
+	/**
+	 * Updates the amount based on the target element.
+	 *
+	 * @param {Object} target - The target element.
+	 */
+	function updateAmount(target) {
+		const rowId = parseInt(target.id.match(/\d+/)[0]);
 
-	// // Function to remove a row
-	// quoteremoverow.addEventListener("click", () => {
-	// 	if (sno > 2) {
-	// 		quoteformlist.removeChild(quoteformlist.lastElementChild);
-	// 		sno--;
-	// 	}
-	// });
+		const qty = qtyElements[rowId].value;
+		const rate = rateElements[rowId].value;
+		const amount = qty && rate ? (qty * rate).toFixed(2) : "";
+
+		amountElements[rowId].value = amount;
+	}
+
+	/**
+	 * Updates the total amount based on the values of the amountElements.
+	 *
+	 * @param {type} paramName - description of parameter
+	 * @return {type} description of return value
+	 */
+	function updateTotalAmount() {
+		const total = amountElements.reduce(
+			(acc, element) => acc + (element.value !== "" ? parseFloat(element.value) : 0),
+			0
+		);
+
+		totalAmount.value = total === 0 ? "" : total.toFixed(2);
+	}
 });
