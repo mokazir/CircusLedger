@@ -30,6 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	// Event listener for change events
 	invoiceForm.addEventListener("change", handleChange);
 
+	// Event listener for submit events
+	invoiceForm.addEventListener("submit", handleSubmit);
+
 	// Generate the first row
 	generateRow();
 
@@ -40,28 +43,81 @@ document.addEventListener("DOMContentLoaded", () => {
 	 */
 	function generateRow() {
 		const rowHTML = `
-		<div class="row g-1" id="invoice${serialNumber}">
-			<div class="col text-center d-lg-none">Item No.</div>
-			<div class="col-md-1">
-				<input class="form-control" type="number" name="serialNumber" id="serialNumber" placeholder="S.No" value="${serialNumber}" disabled />
+		<div class="pb-md-1" id="invoice${serialNumber}">
+			<div class="row g-0">
+				<label class="col col-form-label d-md-none fs-5 fw-semibold fst-italic pt-3">Item No.</label>
 			</div>
-			<div class="col-md">
-				<input class="form-control" type="text" name="desc" placeholder="Description of goods" value="" list="icf" />
+			<div class="row g-1">
+				<div class="col-md-1">
+					<div class="input-group">
+						<span class="input-group-text">#</span>
+						<input
+							class="form-control"
+							type="number"
+							name="serialNumber"
+							id="serialNumber"
+							placeholder="S.No"
+							value="${serialNumber}"
+							readonly />
+					</div>
+				</div>
+				<div class="col-md">
+					<input class="form-control" type="text" name="desc" placeholder="Description of goods" required />
+					<div class="invalid-feedback">Please enter the name of the item.</div>
+				</div>
+				<div class="col-md-1">
+					<input class="form-control" type="text" name="hsn_sac" placeholder="HSN/SAC" />
+				</div>
+				<div class="col-md-1">
+					<input
+						class="form-control"
+						type="number"
+						name="qty"
+						id="qty${serialNumber}"
+						placeholder="Qty"
+						min="0.001"
+						step="0.001"
+						required />
+					<div class="invalid-feedback">Please enter the quantity.</div>
+				</div>
+				<div class="col-md-1">
+					<input class="form-control" type="text" name="uom" placeholder="UOM" />
+				</div>
+				<div class="col-md-1">
+					<div class="input-group has-validation">
+						<span class="input-group-text">₹</span>
+						<input
+							class="form-control"
+							type="number"
+							name="rate"
+							id="rate${serialNumber}"
+							placeholder="Rate"
+							min="0.01"
+							step="0.01"
+							required />
+						<div class="invalid-feedback">Please enter the rate.</div>
+					</div>
+				</div>
+				<div class="col-md-1">
+					<div class="input-group">
+						<span class="input-group-text">₹</span>
+						<input
+							class="form-control"
+							type="number"
+							name="amount"
+							id="amount${serialNumber}"
+							placeholder="Amount"
+							readonly />
+					</div>
+				</div>
+				<div class="col-md-1">
+					<div class="input-group has-validation">
+						<input class="form-control" type="number" name="gst" placeholder="GST" min="0" max="100" step="0.01" required />
+						<span class="input-group-text">%</span>
+						<div class="invalid-feedback">Please enter the GST.</div>
+					</div>
+				</div>
 			</div>
-			<div class="col-md-1">
-				<input class="form-control" type="text" name="hsn_sac" placeholder="HSN/SAC" value="" />
-			</div>
-			<div class="col-md-1">
-				<input class="form-control" type="text" name="qty" id="qty${serialNumber}" placeholder="Qty" value="" />
-			</div>
-			<div class="col-md-1"><input class="form-control" type="text" name="uom" placeholder="UOM" value="" /></div>
-			<div class="col-md-1">
-				<input class="form-control" type="text" name="rate" id="rate${serialNumber}" placeholder="Rate" value="" />
-			</div>
-			<div class="col-md-1">
-				<input class="form-control" type="text" name="amount" id="amount${serialNumber}" placeholder="Amount" value="" />
-			</div>
-			<div class="col-md-1"><input class="form-control" type="text" name="gst" placeholder="GST" value="" /></div>
 		</div>
 		`;
 
@@ -194,5 +250,16 @@ document.addEventListener("DOMContentLoaded", () => {
 		);
 
 		totalAmount.value = total === 0 ? "" : total.toFixed(2);
+	}
+
+	function handleSubmit(event) {
+		if (!invoiceForm.checkValidity()) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+		else {
+			setTimeout(location.reload(), 5000);
+		}
+		invoiceForm.classList.add("was-validated");
 	}
 });

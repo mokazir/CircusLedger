@@ -1,71 +1,163 @@
-{% extends "layout.html" %}
-
-{% block title %}
-    Register
-{% endblock %}
-
-{% block main %}
-    <form class="text-center" action="/compregister" method="post">
-        <div class="mb-3">
-            <input autofocus class="form-control mx-auto w-auto" name="name" placeholder="Company Name" type="text">
-        </div>
-        <label class="mb-1">Address</label>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrBnm" placeholder="Bulding Name" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrBno" placeholder="Bulding Number" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrFlno" placeholder="Floor Number" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrSt" placeholder="Street Name" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrLoc" placeholder="Area/Town" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrDist" placeholder="City/District" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrState" placeholder="State" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="addrPncd" placeholder="Pincode" type="text">
-        </div>
-        <label class="mb-1">Contact</label>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="phno1" placeholder="Mobile number" type="text" minlength="10" maxlength="10">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="phno2" placeholder="Phone number (optional)" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="email" placeholder="Email Address" type="email">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="website" placeholder="Website URL" type="url">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="gstin" placeholder="GSTIN" type="text" minlength="15" maxlength="15">
-        </div>
-        <label class="mb-1">Bank Details (Optional)</label>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="bnkAcnm" placeholder="Account Name" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="bnkAcno" placeholder="Account Number" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="bnkNm" placeholder="Bank Name" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="bnkIfsc" placeholder="IFSC Code" type="text">
-        </div>
-        <div class="mb-3">
-            <textarea class="form-control mx-auto w-auto" name="custTerms" style="height: 100px"></textarea>
-        </div>
-        <button class="btn btn-primary" type="submit">Register Company</button>
-    </form>
+{% extends "layout.html" %} {% block title %} Register {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid d-flex justify-content-center align-items-center">
+	<form class="needs-validation col-md-6" action="/compregister" method="post" novalidate>
+		<div class="row row-cols-1 g-0">
+			<div class="col">
+				<label for="company-name" class="col-12 col-form-label text-center fs-4 fw-bold fst-italic"
+					>Company Registration</label
+				>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating mb-2">
+				<input
+					autofocus
+					class="form-control"
+					id="company-name"
+					name="company-name"
+					placeholder="Company Name"
+					type="text"
+					required />
+				<label for="company-name">Name of the Company</label>
+				<div class="invalid-feedback">Please enter the name of the company.</div>
+			</div>
+		</div>
+		<div class="row row-cols-1 row-cols-md-4 g-0">
+			<div class="col-md-12">
+				<label for="addrBnm" class="col-12 col-form-label text-center fs-5 fw-semibold fst-italic pb-1">Address</label>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" id="addrBnm" name="addrBnm" placeholder="Bulding Name" type="text" />
+				<label for="addrBnm">Bulding Name</label>
+			</div>
+			<div class="col form-floating ps-md-1 pe-md-1 mb-2">
+				<input class="form-control" id="addrBno" name="addrBno" placeholder="Bulding Number" type="text" required />
+				<label for="addrBno">Bulding Number</label>
+			</div>
+			<div class="col form-floating ps-md-1 pe-md-1 mb-2">
+				<input class="form-control" id="addrFlno" name="addrFlno" placeholder="Floor Number" type="text" />
+				<label for="addrFlno">Floor Number</label>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input class="form-control" id="addrSt" name="addrSt" placeholder="Street Name" type="text" required />
+				<label for="addrSt">Street Name</label>
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" id="addrLoc" name="addrLoc" placeholder="Area/Town" type="text" required />
+				<label for="addrLoc">Area/Town</label>
+			</div>
+			<div class="col form-floating ps-md-1 pe-md-1 mb-2">
+				<input class="form-control" id="addrDist" name="addrDist" placeholder="City/District" type="text" required />
+				<label for="addrDist">City/District</label>
+			</div>
+			<div class="col form-floating ps-md-1 pe-md-1 mb-2">
+				<input class="form-control" id="addrState" name="addrState" placeholder="State" type="text" required />
+				<label for="addrState">State</label>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input
+					class="form-control"
+					id="addrPncd"
+					name="addrPncd"
+					placeholder="Pincode"
+					type="text"
+					minlength="6"
+					maxlength="6"
+					required />
+				<label for="addrPncd">Pincode</label>
+			</div>
+		</div>
+		<div class="row row-cols-1 row-cols-md-2 g-0">
+			<div class="col-md-12">
+				<label for="phno1" class="col-12 col-form-label text-center fs-5 fw-semibold fst-italic pb-1">Contact</label>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input
+					class="form-control"
+					id="phno1"
+					name="phno1"
+					placeholder="Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10"
+					required />
+				<label for="phno1">Mobile Number</label>
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input class="form-control" name="phno2" placeholder="Phone number (Optional)" type="tel" />
+				<label for="phno2">Phone number (Optional)</label>
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" name="email" placeholder="Email Address" type="email" />
+				<label for="email">Email Address (Optional)</label>
+				<div class="invalid-feedback">Please enter a valid email address.</div>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input class="form-control" name="website" placeholder="Website URL" type="url" />
+				<label for="website">Website URL (Optional)</label>
+			</div>
+			<div class="col-md-12 form-floating mb-2">
+				<input class="form-control" name="gstin" placeholder="GSTIN" type="text" minlength="15" maxlength="15" />
+				<label for="gstin">GSTIN (For GST invoices)</label>
+				<div class="invalid-feedback">Please enter a valid GSTIN.</div>
+			</div>
+		</div>
+		<div class="row row-cols-1 row-cols-md-2 g-0">
+			<div class="col-md-12">
+				<label for="bnkAcnm" class="col-12 col-form-label text-center fs-5 fw-semibold fst-italic pb-1"
+					>Bank Details (Optional)</label
+				>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" id="bnkAcnm" name="bnkAcnm" placeholder="Account Name" type="text" />
+				<label for="bnkAcnm">Account Name</label>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input class="form-control" id="bnkAcno" name="bnkAcno" placeholder="Account Number" type="text" />
+				<label for="bnkAcno">Account Number</label>
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" id="bnkNm" name="bnkNm" placeholder="Bank Name" type="text" />
+				<label for="bnkNm">Bank Name</label>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input
+					class="form-control text-uppercase"
+					id="bnkIfsc"
+					name="bnkIfsc"
+					placeholder="IFSC Code"
+					type="text"
+					minlength="11"
+					maxlength="11" />
+				<label for="bnkIfsc">IFSC Code</label>
+			</div>
+		</div>
+		<div class="row row-cols-1 g-0">
+			<div class="col">
+				<label for="custTerms" class="col-12 col-form-label text-center fs-5 fw-semibold fst-italic pb-1"
+					>Terms and Conditions</label
+				>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating mb-3">
+				<textarea
+					class="form-control"
+					id="custTerms"
+					name="custTerms"
+					placeholder="Terms and Conditions"
+					style="height: 100px">
+Default: "{{ defaults.custTerms }}"</textarea
+				>
+				<label for="custTerms">Terms and Conditions</label>
+			</div>
+		</div>
+		<div class="text-center mt-3">
+			<button class="btn btn-primary" type="submit">Register Company</button>
+		</div>
+	</form>
+</div>
+<script src="/static/login.js"></script>
 {% endblock %}

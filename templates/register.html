@@ -1,26 +1,80 @@
-{% extends "layout.html" %}
-
-{% block title %}
-    Register
-{% endblock %}
-
-{% block main %}
-    <form class="text-center" action="/register" method="post">
-        <div class="mb-3">
-            <input autofocus class="form-control mx-auto w-auto" name="username" placeholder="Username" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="email" placeholder="Email Address" type="email">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="password" placeholder="New Password" type="password">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="confirmation" placeholder="Confirm New Password" type="password">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="phno" placeholder="10-digit Mobile No.(optional)" type="text" minlength="10" maxlength="10">
-        </div>
-        <button class="btn btn-primary" type="submit">Register User</button>
-    </form>
+{% extends "layout.html" %} {% block title %} Register {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid d-flex justify-content-center align-items-center">
+	<form class="needs-validation col-md-4" action="/register" method="post" novalidate>
+		<div class="row row-cols-1 row-cols-md-2 g-0">
+			<div class="col-md-12">
+				<label for="username" class="col-12 col-form-label text-center fs-4 fw-bold fst-italic"
+					>User Registration</label
+				>
+				<hr class="mt-0" />
+			</div>
+			<div class="col-md-12 form-floating mb-2">
+				<input
+					autofocus
+					class="form-control"
+					id="username"
+					name="username"
+					placeholder="Username"
+					type="text"
+					minlength="5"
+					required />
+				<label for="username">New Username</label>
+				<div class="invalid-feedback">Please enter a username with at least 5 characters.</div>
+			</div>
+			<div class="col form-floating pe-md-1 mb-2 mb-md-0">
+				<input
+					class="form-control"
+					id="password"
+					name="password"
+					placeholder="New Password"
+					type="password"
+					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+					aria-describedby="passwordHelpBlock"
+					required />
+				<label for="password">New Password</label>
+				<div class="invalid-feedback">Please enter a new password.</div>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2 mb-md-0">
+				<input
+					class="form-control"
+					id="confirm-password"
+					name="confirm-password"
+					placeholder="Confirm Password"
+					type="password"
+					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+					aria-describedby="passwordHelpBlock"
+					required />
+				<label for="confirm-password">Confirm Password</label>
+				<div class="invalid-feedback">Please confirm your new password.</div>
+			</div>
+			<div class="col-md-12 px-2 mb-2">
+				<div id="passwordHelpBlock" class="form-text m-0">
+					Your password must be at least 8 characters long and include characters from at least two of the following
+					categories: letters, numbers, special characters (including spaces), or even an emojis.
+				</div>
+			</div>
+			<div class="col form-floating pe-md-1 mb-2">
+				<input class="form-control" id="email" name="email" placeholder="Email Address" type="email" />
+				<label for="email">Email Address (Optional)</label>
+				<div class="invalid-feedback">Please enter a valid email address.</div>
+			</div>
+			<div class="col form-floating ps-md-1 mb-2">
+				<input
+					class="form-control"
+					id="phno"
+					name="phno"
+					placeholder="10-digit Mobile No.(optional)"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<label for="phno">Mobile No. (Optional)</label>
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
+			</div>
+		</div>
+		<div class="text-center mt-3">
+			<button class="btn btn-primary" type="submit">Register User</button>
+		</div>
+	</form>
+</div>
+<script src="/static/register.js"></script>
 {% endblock %}

@@ -1,17 +1,41 @@
-{% extends "layout.html" %}
-
-{% block title %}
-    Log In
-{% endblock %}
-
-{% block main %}
-    <form class="text-center" action="/login" method="post">
-        <div class="mb-3">
-            <input autofocus class="form-control mx-auto w-auto" id="username" name="username" placeholder="Username" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" id="password" name="password" placeholder="Password" type="password">
-        </div>
-        <button class="btn btn-primary" type="submit">Log In</button>
-    </form>
+{% extends "layout.html" %} {% block title %} Log In {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid d-flex justify-content-center align-items-center">
+	<form class="needs-validation col-md-2" action="/login" method="post" novalidate>
+		<div class="row row-cols-1 g-0">
+			<div class="col">
+				<label for="username" class="col-12 col-form-label text-center fs-4 fw-bold fst-italic">Login</label>
+				<hr class="mt-0" />
+			</div>
+			<div class="col form-floating mb-3">
+				<input
+					autofocus
+					class="form-control"
+					id="username"
+					name="username"
+					placeholder="Username"
+					type="text"
+					minlength="5"
+					required />
+				<label for="username">Username</label>
+				<div class="invalid-feedback">Please enter your username.</div>
+			</div>
+			<div class="col form-floating mb-3">
+				<input
+					class="form-control"
+					id="password"
+					name="password"
+					placeholder="Password"
+					type="password"
+					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+					required />
+				<label for="password">Password</label>
+				<div class="invalid-feedback">Please enter your password.</div>
+			</div>
+		</div>
+		<div class="text-center mt-3">
+			<button class="btn btn-primary" type="submit">Log In</button>
+		</div>
+	</form>
+</div>
+<script src="/static/login.js"></script>
 {% endblock %}

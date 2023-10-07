@@ -1,67 +1,93 @@
 {% extends "layout.html" %} {% block title %} Quote {% endblock %} {% block main %}
-<!-- Quote Form -->
-<form action="/result" method="post" class="text-center" id="quote-form">
-	<!-- Quote Number -->
-	<div class="row">
-		<div class="col-md-2">Quotation number</div>
-		<div class="col-md">{{ quote_num }}</div>
-	</div>
-	<!-- Quote Date -->
-	<div class="row mt-3">
-		<div class="col-md-2">Quotation date</div>
-		<div class="col-md">{{ quote_date }}</div>
-	</div>
-	<!-- Quoted To -->
-	<div class="row mt-3">
-		<label for="quoted-company-name" class="col-md-2 col-form-label">Quoted to</label>
-		<div class="col-md-2">
-			<input type="text" class="form-control" id="quoted-company-name" name="quoted_to" placeholder="Client Name" />
+<div class="flex-grow-1 container-fluid">
+	<!-- Quote Form -->
+	<form action="/quote" method="post" class="text-center needs-validation" id="quote-form" novalidate>
+		<!-- Quote Number and Date-->
+		<div class="row g-0 fs-5 fw-semibold">
+			<div class="col-md text-md-end m-0">Quotation number :&nbsp;</div>
+			<div class="col-md text-md-start m-md-0 p-md-0">{{ quote_num }}</div>
+			<div class="col-md text-md-end m-0">Quotation date :&nbsp;</div>
+			<div class="col-md text-md-start m-md-0 p-md-0">{{ quote_date }}</div>
 		</div>
-		<label for="phno" class="col-md-2 col-form-label">Mobile No.</label>
-		<div class="col-md-2">
-			<input class="form-control" id="phno" name="phno" placeholder="Mobile number" type="text" />
+		<hr />
+		<!-- Quoting Info -->
+		<div class="row g-0 mt-3">
+			<!-- Quoting Name -->
+			<label for="quoted-company-name" class="col-md-2 col-form-label fw-semibold fst-italic">Quotation to</label>
+			<div class="col-md-2">
+				<input type="text" class="form-control" id="quoted-company-name" name="quoted_name" placeholder="Client Name" />
+			</div>
+			<!-- Quoting Mobile No. -->
+			<label for="phno1" class="col-md-2 col-form-label fw-semibold fst-italic">Mobile No.</label>
+			<div class="col-md-2">
+				<input
+					class="form-control"
+					id="phno1"
+					name="phno1"
+					placeholder="Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
+			</div>
+			<!-- Quoting ETA -->
+			<label for="eta" class="col-md-2 col-form-label fw-semibold fst-italic">Estimated Time of Delievery</label>
+			<div class="col-md-2">
+				<input class="form-control" id="eta" name="eta" placeholder="Estimated Time of Delivery" type="date" />
+			</div>
 		</div>
-		<label for="eta" class="col-md-2 col-form-label">Estimated Time of Delievery</label>
-		<div class="col-md-2">
-			<input class="form-control" id="eta" name="eta" placeholder="ETA" type="text" />
+		<!-- List of goods -->
+		<div class="row g-0 mt-4">
+			<hr class="mb-0" />
+			<p class="col col-form-label fs-4 fw-bold py-0">List of goods</p>
+			<hr class="mt-0 mb-0 mb-md-3" />
 		</div>
-	</div>
-	<!-- List of goods -->
-	<div class="row mt-3" id="quote-list-of-goods">
-		<label class="col-md-12 col-form-label">List of goods</label>
-		<div class="d-none d-md-flex">
-			<div class="col-md-1">S.No</div>
-			<div class="col-md">Description of goods</div>
-			<div class="col-md-1">HSN/SAC</div>
-			<div class="col-md-1">Qty</div>
-			<div class="col-md-1">UOM</div>
-			<div class="col-md-1">Rate</div>
-			<div class="col-md-1">Amount</div>
-			<div class="col-md-1">GST</div>
+		<div id="quote-list-of-goods">
+			<div class="row g-1 d-none d-md-flex">
+				<div class="col-md-1 fw-semibold fst-italic">S.No</div>
+				<div class="col-md fw-semibold fst-italic">Description of goods</div>
+				<div class="col-md-1 fw-semibold fst-italic">HSN/SAC</div>
+				<div class="col-md-1 fw-semibold fst-italic">Quantity</div>
+				<div class="col-md-1 fw-semibold fst-italic">Unit of Measure</div>
+				<div class="col-md-1 fw-semibold fst-italic">Rate</div>
+				<div class="col-md-1 fw-semibold fst-italic">Amount</div>
+				<div class="col-md-1 fw-semibold fst-italic">GST</div>
+			</div>
 		</div>
-	</div>
-	<!-- Total Amount -->
-	<div class="row mt-3">
-		<label class="col-md-10 col-form-label text-end">Total Amount</label>
-		<div class="col-md-2">
-			<input class="form-control" name="total-amount" id="total-amount" placeholder="Total Amount" type="text" />
+		<!-- Total Amount -->
+		<div class="row mt-2">
+			<label for="total-amount" class="col-md-10 col-form-label text-end fs-5 fw-semibold fst-italic py-1"
+				>Total Amount</label
+			>
+			<div class="col-md-2">
+				<div class="input-group">
+					<span class="input-group-text">₹</span>
+					<input
+						class="form-control"
+						name="total-amount"
+						id="total-amount"
+						placeholder="Total Amount"
+						type="text"
+						readonly />
+				</div>
+			</div>
 		</div>
-	</div>
-	<!-- Buttons for adding and removing rows -->
-	<div class="row mt-3 g-2">
-		<div class="col-md">
-			<button class="btn btn-outline-dark btn-sm w-100" id="quote-add-row" type="button">+</button>
+		<!-- Buttons for adding and removing rows -->
+		<div class="row g-2 mt-3">
+			<div class="col-md">
+				<button class="btn btn-outline-dark btn-sm w-100" id="quote-add-row" type="button">+</button>
+			</div>
+			<div class="col-md">
+				<button class="btn btn-outline-dark btn-sm w-100" id="quote-remove-row" type="button">-</button>
+			</div>
 		</div>
-		<div class="col-md">
-			<button class="btn btn-outline-dark btn-sm w-100" id="quote-remove-row" type="button">-</button>
+		<!-- Submit -->
+		<div class="row g-0 mt-3">
+			<div class="col-md">
+				<button class="btn btn-dark btn-sm w-100" id="quote-submit" type="submit">Generate Quotation</button>
+			</div>
 		</div>
-	</div>
-	<!-- Submit -->
-	<div class="row mt-3">
-		<div class="col-md">
-			<button class="btn btn-dark btn-sm w-100" type="submit">Generate Quotation</button>
-		</div>
-	</div>
-</form>
+	</form>
+</div>
 <script src="/static/quote.js"></script>
 {% endblock %}

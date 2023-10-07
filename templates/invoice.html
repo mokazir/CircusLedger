@@ -1,48 +1,79 @@
 {% extends "layout.html" %} {% block title %} Invoice {% endblock %} {% block main %}
-<!-- Invoice Form -->
-<form action="/result" method="post" class="text-center" id="invoice-form">
-	<!-- Invoice Number -->
-	<div class="row">
-		<div class="col-md-2">Invoice number</div>
-		<div class="col-md">{{ invoice_num }}</div>
-	</div>
-	<!-- Invoice Date -->
-	<div class="row mt-3">
-		<div class="col-md-2">Invoice date</div>
-		<div class="col-md">{{ invoice_date }}</div>
-	</div>
-	<!-- Client Details -->
-	<div class="row mt-3"><label class="col col-form-label">Client Details</label></div>
-	<!-- Billed To -->
-	<div class="row gx-1">
-		<label class="col-md-12 col-form-label">Billed to</label>
-		<div class="row gx-1" id="billing-info">
-			<!-- Billed To Name -->
+<div class="flex-grow-1 container-fluid">
+	<!-- Invoice Form -->
+	<form action="/invoice" method="post" class="text-center needs-validation" id="invoice-form" novalidate>
+		<!-- Invoice Number and Date-->
+		<div class="row g-0 fs-5 fw-semibold">
+			<p class="col-md text-md-end m-0">Invoice number :&nbsp;</p>
+			<p class="col-md text-md-start m-md-0 p-md-0">{{ invoice_num }}</p>
+			<p class="col-md text-md-end m-0">Invoice date :&nbsp;</p>
+			<p class="col-md text-md-start m-md-0 p-md-0">{{ invoice_date }}</p>
+		</div>
+		<!-- Client Details -->
+		<div class="row g-0 mt-md-3">
+			<hr class="mb-0" />
+			<label for="billed-company-name" class="col col-form-label fs-4 fw-bold py-0">Client Details</label>
+			<hr class="mt-0" />
+		</div>
+		<!-- Billing Info-->
+		<div class="row g-0">
+			<label for="billed-company-name" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
+				>Billing Name</label
+			>
+		</div>
+		<div class="row g-0" id="billing-info">
+			<!-- Billing Name -->
 			<label for="billed-company-name" class="col-md-1 col-form-label">Name</label>
 			<div class="col-md-2">
-				<input type="text" class="form-control" id="billed-company-name" name="billed_to" placeholder="Client Name" />
+				<input type="text" class="form-control" id="billed-company-name" name="billed_name" placeholder="Client Name" />
 			</div>
-			<!-- Billed To Mobile No. -->
-			<label for="bphno" class="col-md-1 col-form-label">Mobile No.</label>
+			<!-- Billing Mobile No. -->
+			<label for="bphno1" class="col-md-1 col-form-label">Mobile No.</label>
 			<div class="col-md-2">
-				<input class="form-control" id="bphno" name="bphno" placeholder="Mobile number" type="text" />
+				<input
+					class="form-control"
+					id="bphno1"
+					name="bphno1"
+					placeholder="Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
-			<!-- Billed To Alternate Number -->
-			<label for="bphno1" class="col-md-1 col-form-label">Alt. Number</label>
+			<!-- Billing Alternate Number -->
+			<label for="bphno2" class="col-md-1 col-form-label">Alt. Number</label>
 			<div class="col-md-2">
-				<input class="form-control" id="bphno1" name="bphno1" placeholder="Alternate Mobile number" type="text" />
+				<input
+					class="form-control"
+					id="bphno2"
+					name="bphno2"
+					placeholder="Alternate Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
-			<!-- Billed To GSTIN -->
+			<!-- Billing GSTIN -->
 			<label for="bgstin" class="col-md-1 col-form-label">GSTIN</label>
 			<div class="col-md-2">
-				<input class="form-control" id="bgstin" name="bgstin" placeholder="GSTIN" type="text" />
+				<input
+					class="form-control"
+					id="bgstin"
+					name="bgstin"
+					placeholder="GSTIN"
+					type="text"
+					minlength="15"
+					maxlength="15" />
+				<div class="invalid-feedback">Please enter a valid GSTIN.</div>
 			</div>
 		</div>
-		<!-- Billed To Address -->
-		<label class="col-md-12 col-form-label">Billing Address</label>
-		<div class="row gx-1" id="billing-address">
+		<!-- Billing Address -->
+		<div class="row g-0">
+			<label for="baddrBnm" class="col col-form-label fs-5 fw-semibold fst-italic pb-2">Billing Address</label>
+		</div>
+		<div class="row g-1" id="billing-address">
 			<div class="col-md">
-				<input class="form-control" name="baddrBnm" placeholder="Bulding Name" type="text" />
+				<input class="form-control" name="baddrBnm" id="baddrBnm" placeholder="Bulding Name" type="text" />
 			</div>
 			<div class="col-md">
 				<input class="form-control" name="baddrBno" placeholder="Bulding Number" type="text" />
@@ -63,39 +94,69 @@
 				<input class="form-control" name="baddrState" placeholder="State" type="text" />
 			</div>
 			<div class="col-md">
-				<input class="form-control" name="baddrPncd" placeholder="Pincode" type="text" />
+				<input class="form-control" name="baddrPncd" placeholder="Pincode" type="text" minlength="6" maxlength="6" />
 			</div>
 		</div>
-	</div>
-	<!-- Shipped To -->
-	<div class="row mt-3 gx-1">
-		<label class="col-md-12 col-form-label">Shipped to</label>
-		<div class="row gx-1" id="shipping-info">
+		<!-- Shipping Info-->
+		<div class="row g-0">
+			<label for="shipped-company-name" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
+				>Shipping Name</label
+			>
+		</div>
+		<div class="row g-0" id="shipping-info">
+			<!-- Shipping Name -->
 			<label for="shipped-company-name" class="col-md-1 col-form-label">Name</label>
 			<div class="col-md-3">
-				<input type="text" class="form-control" id="shipped-company-name" name="shipped_to" placeholder="Client Name" />
+				<input
+					type="text"
+					class="form-control"
+					id="shipped-company-name"
+					name="shipped_name"
+					placeholder="Client Name" />
 			</div>
-			<label for="sphno" class="col-md-1 col-form-label">Mobile No.</label>
+			<!-- Shipping Mobile No. -->
+			<label for="sphno1" class="col-md-1 col-form-label">Mobile No.</label>
 			<div class="col-md-3">
-				<input class="form-control" id="sphno" name="sphno" placeholder="Mobile number" type="text" />
+				<input
+					class="form-control"
+					id="sphno1"
+					name="sphno1"
+					placeholder="Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
-			<label for="sphno1" class="col-md-1 col-form-label">Alt. Number</label>
+			<!-- Shipping Alternate Number -->
+			<label for="sphno2" class="col-md-1 col-form-label">Alt. Number</label>
 			<div class="col-md-3">
-				<input class="form-control" id="sphno1" name="sphno1" placeholder="Alternate Mobile number" type="text" />
+				<input
+					class="form-control"
+					id="sphno2"
+					name="sphno2"
+					placeholder="Alternate Mobile number"
+					type="tel"
+					minlength="10"
+					maxlength="10" />
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
 		</div>
 		<!-- Checkbox for Same as Billing info -->
-		<div class="col-md-12">
-			<div class="form-check">
-				<input class="form-check-input float-none" type="checkbox" value="" id="shipping-info-check" />
-				<label class="form-check-label" for="shipping-info-check">Same as billing info</label>
+		<div class="row g-0">
+			<div class="col">
+				<div class="form-check">
+					<input class="form-check-input float-none" type="checkbox" id="shipping-info-check" />
+					<label class="form-check-label fw-medium" for="shipping-info-check">Same as billing info</label>
+				</div>
 			</div>
 		</div>
-		<!-- Shipped To Address -->
-		<label class="col-md-12 col-form-label">Shipping Address</label>
-		<div class="row gx-1" id="shipping-address">
+		<!-- Shipping Address -->
+		<div class="row g-0">
+			<label for="saddrBnm" class="col col-form-label fs-5 fw-semibold fst-italic pb-2">Shipping Address</label>
+		</div>
+		<div class="row g-1" id="shipping-address">
 			<div class="col-md">
-				<input class="form-control" name="saddrBnm" placeholder="Bulding Name" type="text" />
+				<input class="form-control" name="saddrBnm" id="saddrBnm" placeholder="Bulding Name" type="text" />
 			</div>
 			<div class="col-md">
 				<input class="form-control" name="saddrBno" placeholder="Bulding Number" type="text" />
@@ -116,67 +177,90 @@
 				<input class="form-control" name="saddrState" placeholder="State" type="text" />
 			</div>
 			<div class="col-md">
-				<input class="form-control" name="saddrPncd" placeholder="Pincode" type="text" />
+				<input class="form-control" name="saddrPncd" placeholder="Pincode" type="text" minlength="6" maxlength="6" />
 			</div>
 		</div>
 		<!-- Checkbox for Same as Billing address -->
-		<div class="col-md-12">
-			<div class="form-check">
-				<input class="form-check-input float-none" type="checkbox" value="" id="shipping-address-check" />
-				<label class="form-check-label" for="shipping-address-check">Same as billing address</label>
+		<div class="row g-0">
+			<div class="col">
+				<div class="form-check">
+					<input class="form-check-input float-none" type="checkbox" id="shipping-address-check" />
+					<label class="form-check-label fw-medium" for="shipping-address-check">Same as billing address</label>
+				</div>
 			</div>
 		</div>
-	</div>
-	<div class="row mt-3">
-		<label for="transport-mode" class="col-md-2 col-form-label">Transportation Mode</label>
-		<div class="col-md-2">
-			<input type="text" class="form-control" id="transport-mode" name="transport-mode" placeholder="Transportation Mode" />
+		<!-- Miscellaneous Info -->
+		<div class="row g-0 mt-3">
+			<label for="transport-mode" class="col-md-2 col-form-label">Transportation Mode</label>
+			<div class="col-md-2">
+				<input
+					type="text"
+					class="form-control"
+					id="transport-mode"
+					name="transport-mode"
+					placeholder="Transportation Mode" />
+			</div>
+			<label for="payment-mode" class="col-md-2 col-form-label">Payment Mode</label>
+			<div class="col-md-2">
+				<input type="text" class="form-control" id="payment-mode" name="payment-mode" placeholder="Payment Mode" />
+			</div>
+			<label for="eta" class="col-md-2 col-form-label">Estimated Time of Delievery</label>
+			<div class="col-md-2">
+				<input class="form-control" id="eta" name="eta" placeholder="Estimated Time of Delievery" type="date" />
+			</div>
 		</div>
-		<label for="payment-mode" class="col-md-2 col-form-label">Payment Mode</label>
-		<div class="col-md-2">
-			<input type="text" class="form-control" id="payment-mode" name="payment-mode" placeholder="Payment Mode" />
+		<!-- List of goods -->
+		<div class="row g-0 mt-4">
+			<hr class="mb-0" />
+			<p class="col col-form-label fs-4 fw-bold py-0">List of goods</p>
+			<hr class="mt-0 mb-0 mb-md-3" />
 		</div>
-		<label for="eta" class="col-md-2 col-form-label">Estimated Time of Delievery</label>
-		<div class="col-md-2">
-			<input class="form-control" id="eta" name="eta" placeholder="ETA" type="text" />
+		<div id="invoice-list-of-goods">
+			<div class="row g-1 d-none d-md-flex">
+				<div class="col-md-1 fw-semibold fst-italic">S.No</div>
+				<div class="col-md fw-semibold fst-italic">Description of goods</div>
+				<div class="col-md-1 fw-semibold fst-italic">HSN/SAC</div>
+				<div class="col-md-1 fw-semibold fst-italic">Quantity</div>
+				<div class="col-md-1 fw-semibold fst-italic">Unit of Measure</div>
+				<div class="col-md-1 fw-semibold fst-italic">Rate</div>
+				<div class="col-md-1 fw-semibold fst-italic">Amount</div>
+				<div class="col-md-1 fw-semibold fst-italic">GST</div>
+			</div>
 		</div>
-	</div>
-	<!-- List of goods -->
-	<div class="row mt-3" id="invoice-list-of-goods">
-		<label class="col-md-12 col-form-label">List of goods</label>
-		<div class="d-none d-md-flex">
-			<div class="col-md-1">S.No</div>
-			<div class="col-md">Description of goods</div>
-			<div class="col-md-1">HSN/SAC</div>
-			<div class="col-md-1">Qty</div>
-			<div class="col-md-1">UOM</div>
-			<div class="col-md-1">Rate</div>
-			<div class="col-md-1">Amount</div>
-			<div class="col-md-1">GST</div>
+		<!-- Total Amount -->
+		<div class="row mt-2">
+			<label for="total-amount" class="col-md-10 col-form-label text-end fs-5 fw-semibold fst-italic py-1"
+				>Total Amount</label
+			>
+			<div class="col-md-2">
+				<div class="input-group">
+					<span class="input-group-text">₹</span>
+					<input
+						class="form-control"
+						name="total-amount"
+						id="total-amount"
+						placeholder="Total Amount"
+						type="text"
+						readonly />
+				</div>
+			</div>
 		</div>
-	</div>
-	<!-- Total Amount -->
-	<div class="row mt-3">
-		<label class="col-md-10 col-form-label text-end">Total Amount</label>
-		<div class="col-md-2">
-			<input class="form-control" name="total-amount" id="total-amount" placeholder="Total Amount" type="text" />
+		<!-- Buttons for adding and removing rows -->
+		<div class="row g-2 mt-3">
+			<div class="col-md">
+				<button class="btn btn-outline-dark btn-sm w-100" id="invoice-add-row" type="button">+</button>
+			</div>
+			<div class="col-md">
+				<button class="btn btn-outline-dark btn-sm w-100" id="invoice-remove-row" type="button">-</button>
+			</div>
 		</div>
-	</div>
-	<!-- Buttons for adding and removing rows -->
-	<div class="row mt-3 g-2">
-		<div class="col-md">
-			<button class="btn btn-outline-dark btn-sm w-100" id="invoice-add-row" type="button">+</button>
+		<!-- Submit -->
+		<div class="row g-0 mt-3">
+			<div class="col-md">
+				<button class="btn btn-dark btn-sm w-100" type="submit">Generate Invoice</button>
+			</div>
 		</div>
-		<div class="col-md">
-			<button class="btn btn-outline-dark btn-sm w-100" id="invoice-remove-row" type="button">-</button>
-		</div>
-	</div>
-	<!-- Submit -->
-	<div class="row mt-3">
-		<div class="col-md">
-			<button class="btn btn-dark btn-sm w-100" type="submit">Generate Invoice</button>
-		</div>
-	</div>
-</form>
+	</form>
+</div>
 <script src="/static/invoice.js"></script>
 {% endblock %}

@@ -1,0 +1,43 @@
+{% extends "layout.html" %} {% block title %} Settings {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid" id="settings">
+	<nav class="nav nav-tabs justify-content-center" id="settings-nav">
+		<a class="nav-link active" aria-current="page" href="#user">User Settings</a>
+		<a class="nav-link" href="#company">Company Settings</a>
+	</nav>
+	<div class="d-flex justify-content-center flex-column">
+		<div class="m-auto text-center" id="user">
+			<label class="mt-2 h5">Change Password</label>
+			<form action="/change_password" method="post">
+				<div>
+					<label for="old-password" class="form-label">Old Password</label>
+					<input type="password" class="form-control" name="old_password" id="old-password" />
+				</div>
+				<div class="mt-3">
+					<label for="new-password" class="form-label">New Password</label>
+					<input type="password" class="form-control" name="new_password" id="new-password" />
+				</div>
+				<div class="mt-3">
+					<label for="confirm-password" class="form-label">Confirm Password</label>
+					<input type="password" class="form-control" name="confirm_password" id="confirm-password" />
+				</div>
+				<button type="submit" class="btn btn-primary mt-3">Change Password</button>
+			</form>
+		</div>
+		<div class="m-auto text-center" id="company" hidden>
+			<label class="mt-2 h5">Change Terms and Conditions</label>
+			<form action="/change_terms" method="post">
+				<div>
+					<label for="terms" class="form-label">Old Terms and Conditions</label>
+					<textarea class="form-control" id="terms" style="height: 100px" readonly>{% if company.custTerms %}{{ company.custTerms }}{% endif %}</textarea>
+				</div>
+				<div class="mt-3">
+					<label for="terms" class="form-label">New Terms and Conditions</label>
+					<textarea class="form-control" name="new_terms" id="terms" style="height: 100px"></textarea>
+				</div>
+				<button type="submit" class="btn btn-primary mt-3">Change Terms and Conditions</button>
+			</form>
+		</div>
+	</div>
+</div>
+<script src="/static/settings.js"></script>
+{% endblock %}

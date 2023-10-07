@@ -92,14 +92,20 @@ def lookup(symbol):
 
 def inr(value):
     """Format value as INR."""
-    return f"₹{value:,.2f}"
+    if value:
+        return f"₹{value:,.2f}"
 
 
 # Check a string of phone number for its length to be exactly 10 and it only contains numbers from 0-9 only
 def validate_phno(phone_number):
-     return phone_number.isdecimal() and len(phone_number) == 10
+    return phone_number.isdecimal() and len(phone_number) == 10
 
 
 # Check a string of email to be valid
 def validate_email(email):
-    return regexmatch(r'^[a-zA-Z0-9!#$%&\'*+/=?^_`{|}~.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email) is not None
+    return (
+        regexmatch(
+            r"^[a-zA-Z0-9!#$%&\'*+/=?^_`{|}~.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email
+        )
+        is not None
+    )

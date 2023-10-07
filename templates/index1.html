@@ -1,0 +1,113 @@
+{% extends "layout.html" %} {% block title %} Home {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid d-flex flex-column justify-content-around" id="home">
+	<div>
+		<div class="text-center">
+			<h2>Lastest Invoices</h2>
+		</div>
+		<div class="table-responsive">
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th scope="col">Invoice Number</th>
+						<th scope="col">Invoice Timestamp</th>
+						<th scope="col">Invoiced to</th>
+						<th scope="col">Shipped to</th>
+						<th scope="col">Transportation Mode</th>
+						<th scope="col">Payment Mode</th>
+						<th scope="col">ETA</th>
+						<th scope="col">List of goods</th>
+						<th scope="col">Amount</th>
+						<th scope="col">PDF</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for invoice in invoice_list %}
+					<tr>
+						<th scope="row">{{ invoice.bill_num }}</th>
+						<td>{{ invoice.bill_timestamp }}</td>
+						<td>{{ invoice.billed_to }}</td>
+						<td>{{ invoice.shipped_to }}</td>
+						<td>{{ invoice.transport }}</td>
+						<td>{{ invoice.payment }}</td>
+						<td>{{ invoice.eta }}</td>
+						<td></td> <!-- {{ invoice.list_of_goods }} -->
+						<td>{{ invoice.amount | inr }}</td>
+						<td><a href="{{ url_for('download_pdf', pdf_id=invoice.id) }}">{{ invoice.bill_num }}.pdf</a></td>
+					</tr>
+					{% endfor %}
+
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div>
+		<div class="text-center">
+			<h2>Lastest Quotations</h2>
+		</div>
+		<div class="table-responsive" id="quotations">
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th scope="col">Quotation Number</th>
+						<th scope="col">Quotation Date</th>
+						<th scope="col">Quoted to</th>
+						<th scope="col">ETA</th>
+						<th scope="col">List of goods</th>
+						<th scope="col">Amount</th>
+						<th scope="col">PDF</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for quotation in quotation_list %}
+					<tr class="quote-list">
+						<th scope="row">{{ quotation.bill_num }}</th>
+						<td>{{ quotation.bill_timestamp }}</td>
+						<td>{{ quotation.billed_to }}</td>
+						<td>{{ quotation.eta }}</td>
+						<td>
+							<button class="btn btn-primary quote-button" type="button">Goods</button>
+						</td> <!-- {{ quotation.list_of_goods }} -->
+						<td>{{ quotation.amount | inr }}</td>
+						<td><a href="{{ url_for('download_pdf', pdf_id=quotation.id) }}">{{ quotation.bill_num }}.pdf</a></td>
+					</tr>
+					<tr class="quote-goods d-none">
+						<td colspan="7">
+							<table class="table table-bordered">
+								<thead>
+									<tr>
+										<th scope="col">S.No</th>
+										<th scope="col">Description of goods</th>
+										<th scope="col">HSN/SAC</th>
+										<th scope="col">Unit of Measure</th>
+										<th scope="col">Rate per unit</th>
+										<th scope="col">GST used</th>
+										<th scope="col">Added at</th>
+										<th scope="col">Added by</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for item in quotation.list_of_goods %}
+									<tr>
+										<th scope="row" class="sno"></th>
+										<td>{{ item.desc }}</td>
+										<td>{{ item.hsn_sac }}</td>
+										<td>{{ item.uom }}</td>
+										<td>{{ item.rate | inr }}</td>
+										<td>{{ item.gst }}</td>
+										<td>{{ item.added_at }}</td>
+										<td>{{ item.added_by }}</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+<script src="/static/index.js"></script>
+{% endblock %}

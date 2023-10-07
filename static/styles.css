@@ -1,4 +1,32 @@
 /* body background */
 body {
-    background-color: #eeeeee;
+	background-color: #eeeeee;
 }
+
+@media (min-width: 992px) {
+	#nav-bar-end {
+		width: 250px;
+	}
+}
+
+.navbar-brand {
+	width: 250px;
+}
+
+/* .login {
+	min-width: 100%;
+}
+
+@media (min-width: 768px) {
+	.login {
+		min-width: 20%;
+	}
+} */
+/* 
+.check-feedback {
+    display: none;
+    width: 100%;
+    margin-top: .25rem;
+    font-size: .875em;
+    color: var(--bs-form-invalid-color);
+} */

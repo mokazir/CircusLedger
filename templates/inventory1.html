@@ -1,0 +1,67 @@
+{% extends "layout.html" %} {% block title %} Inventory {% endblock %} {% block main %}
+<div class="flex-grow-1 container-fluid" id="inventory">
+    <nav class="nav nav-tabs justify-content-center" id="inventory-nav">
+        <a class="nav-link active" aria-current="page" href="#goods">Goods</a>
+        <a class="nav-link" href="#clients">Clients</a>
+    </nav>
+    <div class="table-responsive" id="goods">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">S.No</th>
+                    <th scope="col">Description of goods</th>
+                    <th scope="col">HSN/SAC</th>
+                    <th scope="col">Unit of Measure</th>
+                    <th scope="col">Rate per unit</th>
+                    <th scope="col">GST used</th>
+                    <th scope="col">Added at</th>
+                    <th scope="col">Added by</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in goods_list %}
+                <tr>
+                    <th scope="row" class="sno">{{ loop.index }}</th>
+                    <td>{{ item.desc }}</td>
+                    <td>{{ item.hsn_sac }}</td>
+                    <td>{{ item.uom }}</td>
+                    <td>{{ item.rate | inr }}</td>
+                    <td>{{ item.gst }}</td>
+                    <td>{{ item.added_at }}</td>
+                    <td>{{ item.added_by }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="table-responsive" id="clients" hidden>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">S.No</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Address</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">GSTIN</th>
+                    <th scope="col">Added at</th>
+                    <th scope="col">Added by</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients_list %}
+                <tr>
+                    <th scope="row" class="sno">{{ loop.index }}</th>
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.addr }}</td>
+                    <td>{{ client.phno }}</td>
+                    <td>{{ client.gstin }}</td>
+                    <td>{{ client.added_at }}</td>
+                    <td>{{ client.added_by }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script src="/static/inventory.js"></script>
+{% endblock %}

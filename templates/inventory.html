@@ -1,67 +1,95 @@
 {% extends "layout.html" %} {% block title %} Inventory {% endblock %} {% block main %}
-<div id="inventory">
-    <nav class="nav nav-tabs justify-content-center" id="inventory-nav">
-        <a class="nav-link active" aria-current="page" href="#goods">Goods</a>
-        <a class="nav-link" href="#clients">Clients</a>
-    </nav>
-    <div class="table-responsive" id="goods">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">S.No</th>
-                    <th scope="col">Description of goods</th>
-                    <th scope="col">HSN/SAC</th>
-                    <th scope="col">Unit of Measure</th>
-                    <th scope="col">Rate per unit</th>
-                    <th scope="col">GST used</th>
-                    <th scope="col">Added at</th>
-                    <th scope="col">Added by</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in goods_list %}
-                <tr>
-                    <th scope="row" class="sno"></th>
-                    <td>{{ item.desc }}</td>
-                    <td>{{ item.hsn }}</td>
-                    <td>{{ item.uom }}</td>
-                    <td>{{ item.rate }}</td>
-                    <td>{{ item.gst }}</td>
-                    <td>{{ item.added_at }}</td>
-                    <td>{{ item.added_by }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="table-responsive" id="clients" hidden>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">S.No</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Address</th>
-                    <th scope="col">Phone</th>
-                    <th scope="col">GSTIN</th>
-                    <th scope="col">Added at</th>
-                    <th scope="col">Added by</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for client in clients_list %}
-                <tr>
-                    <th scope="row" class="sno"></th>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.address }}</td>
-                    <td>{{ item.phone }}</td>
-                    <td>{{ item.gstin }}</td>
-                    <td>{{ item.added_at }}</td>
-                    <td>{{ item.added_by }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="flex-grow-1 container-fluid" id="inventory">
+	<nav>
+		<div class="nav nav-tabs justify-content-center" id="inventory-nav-tab" role="tablist">
+			<button
+				class="nav-link active"
+				id="goods-tab"
+				data-bs-toggle="tab"
+				data-bs-target="#goods"
+				type="button"
+				role="tab"
+				aria-controls="goods"
+				aria-selected="true">
+				Goods
+			</button>
+			<button
+				class="nav-link"
+				id="clients-tab"
+				data-bs-toggle="tab"
+				data-bs-target="#clients"
+				type="button"
+				role="tab"
+				aria-controls="clients"
+				aria-selected="false">
+				Clients
+			</button>
+		</div>
+	</nav>
+	<div class="tab-content text-center">
+		<div class="tab-pane fade show active" id="goods" role="tabpanel" aria-labelledby="goods-tab" tabindex="0">
+			<div class="table-responsive">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th scope="col" class="fs-5">S.No</th>
+							<th scope="col" class="fs-5">Description of goods</th>
+							<th scope="col" class="fs-5">HSN/SAC</th>
+							<th scope="col" class="fs-5">Unit of Measure</th>
+							<th scope="col" class="fs-5">Rate per unit</th>
+							<th scope="col" class="fs-5">GST used</th>
+							<th scope="col" class="fs-5">Added at</th>
+							<th scope="col" class="fs-5">Added by</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for item in goods_list %}
+						<tr>
+							<th scope="row" class="sno">{{ loop.index }}</th>
+							<td class="text-start">{{ item.desc }}</td>
+							<td>{{ item.hsn_sac }}</td>
+							<td>{{ item.uom }}</td>
+							<td>{{ item.rate | inr }}</td>
+							<td>{{ "%s%s" % (item.gst, "%") }}</td>
+							<td>{{ item.added_at }}</td>
+							<td>{{ item.added_by }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="tab-pane fade" id="clients" role="tabpanel" aria-labelledby="clients-tab" tabindex="0">
+			<div class="table-responsive">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th scope="col" class="fs-5">S.No</th>
+							<th scope="col" class="fs-5">Name</th>
+							<th scope="col" class="fs-5">Address</th>
+							<th scope="col" class="fs-5">Phone</th>
+							<th scope="col" class="fs-5">GSTIN</th>
+							<th scope="col" class="fs-5">Added at</th>
+							<th scope="col" class="fs-5">Added by</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for client in clients_list %}
+						<tr>
+							<th scope="row" class="sno">{{ loop.index }}</th>
+							<td class="text-start">{{ client.name }}</td>
+							<td class="text-start">{{ client.addr }}</td>
+							<td>{{ client.phno }}</td>
+							<td>{{ client.gstin }}</td>
+							<td>{{ client.added_at }}</td>
+							<td>{{ client.added_by }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
 </div>
 <script src="/static/inventory.js"></script>
 {% endblock %}

@@ -1,38 +1,198 @@
 {% extends "layout.html" %} {% block title %} History {% endblock %} {% block main %}
-<div class="table-responsive" id="history">
-	<table class="table">
-		<thead>
-			<tr>
-				<th scope="col">Invoice Number</th>
-				<th scope="col">Invoice Date</th>
-				<th scope="col">Transaction type</th>
-				<th scope="col">Invoiced/Quoted to</th>
-				<th scope="col">Shipped to</th>
-				<th scope="col">Transportation Mode</th>
-				<th scope="col">Payment Mode</th>
-				<th scope="col">ETA</th>
-				<th scope="col">List of goods</th>
-				<th scope="col">Amount</th>
-				<th scope="col">PDF</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for history in history_list %}
-			<tr>
-				<th scope="row">{{ history.invoice_number }}</th>
-				<td>{{ history.invoice_date }}</td>
-				<td>{{ history.transaction_type }}</td>
-				<td>{{ history.billed_to }}</td>
-                <td>{{ history.shipped_to }}</td>
-                <td>{{ history.transportation_mode }}</td>
-                <td>{{ history.payment_mode }}</td>
-                <td>{{ history.eta }}</td>
-                <td>{{ history.list_of_goods }}</td>
-                <td>{{ history.amount }}</td>
-                <td><a href="{{ history.pdf }}">PDF</a></td>
-			</tr>
-            {% endfor %}
-		</tbody>
-	</table>
+<div class="flex-grow-1 container-fluid">
+	<nav>
+		<div class="nav nav-tabs justify-content-center" id="history-nav-tab" role="tablist">
+			<button
+				class="nav-link active"
+				id="invoices-tab"
+				data-bs-toggle="tab"
+				data-bs-target="#invoices"
+				type="button"
+				role="tab"
+				aria-controls="invoices"
+				aria-selected="true">
+				Invoices
+			</button>
+			<button
+				class="nav-link"
+				id="quotations-tab"
+				data-bs-toggle="tab"
+				data-bs-target="#quotations"
+				type="button"
+				role="tab"
+				aria-controls="quotations"
+				aria-selected="false">
+				Quotations
+			</button>
+		</div>
+	</nav>
+	<div class="tab-content text-center">
+		<div class="tab-pane fade show active" id="invoices" role="tabpanel" aria-labelledby="invoices-tab" tabindex="0">
+			<div class="table-responsive">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th scope="col" class="fs-5">Invoice Number</th>
+							<th scope="col" class="fs-5">Invoice Timestamp</th>
+							<th scope="col" class="fs-5">Invoiced to</th>
+							<th scope="col" class="fs-5">Shipped to</th>
+							<th scope="col" class="fs-5">Transportation Mode</th>
+							<th scope="col" class="fs-5">Payment Mode</th>
+							<th scope="col" class="fs-5">ETA</th>
+							<th scope="col" class="fs-5">List of goods</th>
+							<th scope="col" class="fs-5">Amount</th>
+							<th scope="col" class="fs-5">PDF</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for invoice in invoice_list %}
+						<tr>
+							<th scope="row">{{ invoice.bill_num }}</th>
+							<td>{{ invoice.bill_timestamp }}</td>
+							<td class="text-start">{{ invoice.billed_to }}</td>
+							<td class="text-start">{{ invoice.shipped_to }}</td>
+							<td>{{ invoice.transport }}</td>
+							<td>{{ invoice.payment }}</td>
+							<td>{{ invoice.eta }}</td>
+							<td class="p-0">
+								<div class="accordion accordion-flush">
+									<button
+										class="accordion-button collapsed p-2"
+										type="button"
+										data-bs-toggle="collapse"
+										data-bs-target="#invoice{{ loop.index }}"
+										aria-expanded="false"
+										aria-controls="invoice{{ loop.index }}">
+										Goods
+									</button>
+								</div>
+							</td>
+							<td class="fw-semibold">{{ invoice.amount | inr }}</td>
+							<td>
+								<a href="{{ url_for('download_pdf', pdf_id=invoice.id) }}"
+									>{{ "%s%s" % (invoice.bill_num[-6:], ".pdf") }}</a
+								>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="11" class="p-0">
+								<div id="invoice{{ loop.index }}" class="accordion-collapse collapse">
+									<div class="accordion-body">
+										<table class="table table-bordered mb-0">
+											<thead>
+												<tr>
+													<th scope="col">S.No</th>
+													<th scope="col">Description of goods</th>
+													<th scope="col">HSN/SAC</th>
+													<th scope="col">Qty</th>
+													<th scope="col">Unit of Measure</th>
+													<th scope="col">Rate per unit</th>
+													<th scope="col">GST used</th>
+												</tr>
+											</thead>
+											<tbody>
+												{% if invoice.list_of_goods != None %} {% for item in invoice.list_of_goods %}
+												<tr>
+													<th scope="row">{{ loop.index }}</th>
+													<td>{{ item.desc }}</td>
+													<td>{{ item.hsn_sac }}</td>
+													<td>{{ item.qty }}</td>
+													<td>{{ item.uom }}</td>
+													<td>{{ item.rate | inr }}</td>
+													<td>{{ "%s%s" % (item.gst, "%") }}</td>
+												</tr>
+												{% endfor %} {% endif %}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="tab-pane fade" id="quotations" role="tabpanel" aria-labelledby="quotations-tab" tabindex="0">
+			<div class="col table-responsive">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th scope="col" class="fs-5">Quotation Number</th>
+							<th scope="col" class="fs-5">Quotation Timestamp</th>
+							<th scope="col" class="fs-5">Quoted to</th>
+							<th scope="col" class="fs-5">ETA</th>
+							<th scope="col" class="fs-5">List of goods</th>
+							<th scope="col" class="fs-5">Amount</th>
+							<th scope="col" class="fs-5">PDF</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for quotation in quotation_list %}
+						<tr>
+							<th scope="row">{{ quotation.bill_num }}</th>
+							<td>{{ quotation.bill_timestamp }}</td>
+							<td class="text-start">{{ quotation.billed_to }}</td>
+							<td>{{ quotation.eta }}</td>
+							<td class="p-0">
+								<div class="accordion accordion-flush">
+									<button
+										class="accordion-button collapsed p-2"
+										type="button"
+										data-bs-toggle="collapse"
+										data-bs-target="#quote{{ loop.index }}"
+										aria-expanded="false"
+										aria-controls="quote{{ loop.index }}">
+										Goods
+									</button>
+								</div>
+							</td>
+							<td class="fw-bold">{{ quotation.amount | inr }}</td>
+							<td>
+								<a href="{{ url_for('download_pdf', pdf_id=quotation.id) }}"
+									>{{ "%s%s" % (quotation.bill_num[-6:], ".pdf") }}</a
+								>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="7" class="p-0">
+								<div id="quote{{ loop.index }}" class="accordion-collapse collapse">
+									<div class="accordion-body">
+										<table class="table table-bordered mb-0">
+											<thead>
+												<tr>
+													<th scope="col">S.No</th>
+													<th scope="col">Description of goods</th>
+													<th scope="col">HSN/SAC</th>
+													<th scope="col">Qty</th>
+													<th scope="col">Unit of Measure</th>
+													<th scope="col">Rate per unit</th>
+													<th scope="col">GST used</th>
+												</tr>
+											</thead>
+											<tbody>
+												{% if quotation.list_of_goods is not none %} {% for item in quotation.list_of_goods %}
+												<tr>
+													<th scope="row">{{ loop.index }}</th>
+													<td class="text-start">{{ item.descp }}</td>
+													<td>{{ item.hsn_sac }}</td>
+													<td>{{ item.qty }}</td>
+													<td>{{ item.uom }}</td>
+													<td>{{ item.rate | inr }}</td>
+													<td>{{ "%s%s" % (item.gst, "%") }}</td>
+												</tr>
+												{% endfor %} {% endif %}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
 </div>
 {% endblock %}
