@@ -37,21 +37,62 @@ def apology(message, code=400):
 
 
 def login_required(f):
-    """
-    Decorate routes to require login.
-
-    http://flask.pocoo.org/docs/0.12/patterns/viewdecorators/
-    """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") is None:
+        if not session.get("user_id"):
             return redirect("/login")
-        if session.get("company_id") is None:
+        if not session.get("company_id"):
             return redirect("/compregister")
         return f(*args, **kwargs)
 
     return decorated_function
+
+def user_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def inr(value):
+    """Format value as INR."""
+    if value:
+        return f"₹{value:,.2f}"
+
+
+# Check a string of phone number for its length to be exactly 10 and it only contains numbers from 0-9 only
+def is_valid_phno(phone_number):
+    return phone_number.isdecimal() and len(phone_number) == 10
+
+
+def is_valid_password(password):
+    pattern = r"^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+    return regexmatch(pattern, password) is not None
+
+
+def is_valid_email(email):
+    pattern = r"^[\w!#$%&'*+/=?^`{|}~\.-]{1,64}@[a-zA-Z0-9.-]{1,255}\.[a-zA-Z]{2,}$"
+    return regexmatch(pattern, email) is not None
+
+
+def is_valid_pncd(pincode):
+    pattern = r"^[1-9][0-9]{5}$"
+    return regexmatch(pattern, pincode) is not None
+
+
+def bill_num_formatr(bill_type, bill_timestamp, bill_num):
+    current_bill_month = int(bill_timestamp[5:7])
+    current_bill_year = int(bill_timestamp[2:4])
+    current_bill_year = (
+        f"{current_bill_year}/{current_bill_year + 1}"
+        if current_bill_month > 3
+        else f"{current_bill_year - 1}/{current_bill_year}"
+    )
+    current_bill_type = "INV" if bill_type == "Invoice" else "EST"
+    return f"{current_bill_type}-{current_bill_year}-{str(current_bill_month).zfill(2)}-{str(bill_num).zfill(6)}"
 
 
 """
@@ -88,24 +129,3 @@ def lookup(symbol):
     except (requests.RequestException, ValueError, KeyError, IndexError):
         return None
 """
-
-
-def inr(value):
-    """Format value as INR."""
-    if value:
-        return f"₹{value:,.2f}"
-
-
-# Check a string of phone number for its length to be exactly 10 and it only contains numbers from 0-9 only
-def validate_phno(phone_number):
-    return phone_number.isdecimal() and len(phone_number) == 10
-
-
-# Check a string of email to be valid
-def validate_email(email):
-    return (
-        regexmatch(
-            r"^[a-zA-Z0-9!#$%&\'*+/=?^_`{|}~.-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email
-        )
-        is not None
-    )

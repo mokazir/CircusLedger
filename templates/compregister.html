@@ -61,7 +61,7 @@
 					name="addrPncd"
 					placeholder="Pincode"
 					type="text"
-					minlength="6"
+					pattern="^[1-9][0-9]{5}$"
 					maxlength="6"
 					required />
 				<label for="addrPncd">Pincode</label>
@@ -79,15 +79,22 @@
 					name="phno1"
 					placeholder="Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10"
 					required />
 				<label for="phno1">Mobile Number</label>
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
 			<div class="col form-floating ps-md-1 mb-2">
-				<input class="form-control" name="phno2" placeholder="Phone number (Optional)" type="tel" />
+				<input
+					class="form-control"
+					name="phno2"
+					placeholder="Phone number (Optional)"
+					type="tel"
+					pattern="^[6-9][0-9]{9}$"
+					maxlength="10" />
 				<label for="phno2">Phone number (Optional)</label>
+				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
 			<div class="col form-floating pe-md-1 mb-2">
 				<input class="form-control" name="email" placeholder="Email Address" type="email" />
@@ -99,7 +106,13 @@
 				<label for="website">Website URL (Optional)</label>
 			</div>
 			<div class="col-md-12 form-floating mb-2">
-				<input class="form-control" name="gstin" placeholder="GSTIN" type="text" minlength="15" maxlength="15" />
+				<input
+					class="form-control text-uppercase"
+					name="gstin"
+					placeholder="GSTIN"
+					type="text"
+					minlength="15"
+					maxlength="15" />
 				<label for="gstin">GSTIN (For GST invoices)</label>
 				<div class="invalid-feedback">Please enter a valid GSTIN.</div>
 			</div>
@@ -142,16 +155,20 @@
 				>
 				<hr class="mt-0" />
 			</div>
-			<div class="col form-floating mb-3">
+			<div class="col form-floating mb-2 mb-md-0">
 				<textarea
 					class="form-control"
 					id="custTerms"
 					name="custTerms"
 					placeholder="Terms and Conditions"
+					aria-describedby="termsHelpBlock"
 					style="height: 100px">
-Default: "{{ defaults.custTerms }}"</textarea
+{{ defaults.custTerms }}</textarea
 				>
 				<label for="custTerms">Terms and Conditions</label>
+			</div>
+			<div class="col px-2 mb-2">
+				<div id="termsHelpBlock" class="form-text m-0">Default Terms and Conditions: "{{ defaults.custTerms }}"</div>
 			</div>
 		</div>
 		<div class="text-center mt-3">

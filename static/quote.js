@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	const totalAmount = document.getElementById("total-amount");
 	const quoteAddRow = document.getElementById("quote-add-row");
 	const quoteRemoveRow = document.getElementById("quote-remove-row");
-	const quoteSubmit = document.getElementById("quote-submit");
-
 
 	// Cache frequently accessed elements
 	const qtyElements = [];
@@ -16,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	const amountElements = [];
 
 	// Event listener for input changes
-	quoteForm.addEventListener("input", handleInputChange);
+	quoteForm.addEventListener("input", handleInput);
 
 	// Event listener for click events
 	quoteForm.addEventListener("click", handleClick);
@@ -46,14 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
 							class="form-control"
 							type="number"
 							name="serialNumber"
-							id="serialNumber"
+							id="serialNumber${serialNumber}"
 							placeholder="S.No"
 							value="${serialNumber}"
 							readonly />
 					</div>
 				</div>
 				<div class="col-md">
-					<input class="form-control" type="text" name="desc" placeholder="Description of goods" required />
+					<input class="form-control" type="text" name="descp" placeholder="Description of goods" required />
 					<div class="invalid-feedback">Please enter the name of the item.</div>
 				</div>
 				<div class="col-md-1">
@@ -128,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	 *
 	 * @param {Event} event - The input change event object.
 	 */
-	function handleInputChange(event) {
+	function handleInput(event) {
 		const target = event.target;
 		if (target.matches("[id^='qty']") || target.matches("[id^='rate']")) {
 			updateAmount(target);
@@ -182,23 +180,54 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	/**
-	 * Reloads the quote after a delay.
+	 * Handles the form submission event.
 	 *
-	 * @param {type} None - No parameters are needed.
-	 * @return {type} None - No return value.
+	 * @param {Event} event - The form submission event.
+	 * @return {Promise} A Promise that resolves when the form submission is completed.
 	 */
-	function reloadQuote() {
-		setTimeout(location.reload(), 1000);
+	async function handleSubmit(event) {
+		event.preventDefault();
+
+		quoteForm.classList.add("was-validated");
+		if (!quoteForm.checkValidity()) {
+			return;
+		}
+
+		try {
+			const response = await fetch(location.href, {
+				method: "POST",
+				body: new FormData(quoteForm),
+			});
+			if (response.ok) {
+				const contentDisposition = response.headers.get("Content-Disposition");
+				const filename = contentDisposition.match(/filename="(.+)"/)[1];
+				const blob = await response.blob();
+				const file = new File([blob], filename);
+				const url = URL.createObjectURL(file);
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = filename;
+				a.click();
+				location.replace(location.href);
+			} else {
+				console.error("Error:", response.status);
+				let message = await response.text();
+				message = encodeURIComponent(message);
+				const url = `/apology/${message}/${response.status}`;
+				location.assign(url);
+			}
+		} catch (error) {
+			console.error(error);
+			showErrorMessage(error);
+		}
 	}
 
-	function handleSubmit(event) {
-		if (!quoteForm.checkValidity()) {
-			event.preventDefault();
-			event.stopPropagation();
-		}
-		else {
-			setTimeout(location.reload(), 5000);
-		}
-		quoteForm.classList.add("was-validated");
+	function showErrorMessage(error) {
+		const alertMessage =
+			error instanceof TypeError
+				? `${error.message}. Check your Network connection and try again.`
+				: `${error.message}. Please Contact Support.`;
+
+		alert(alertMessage);
 	}
 });

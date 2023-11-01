@@ -1,18 +1,9 @@
 import os
 import io
+import time
 
 from cs50 import SQL
-import json
-from flask import (
-    Flask,
-    flash,
-    redirect,
-    render_template,
-    request,
-    session,
-    make_response,
-    send_file,
-)
+from flask import Flask, flash, redirect, render_template, request, session, send_file
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -24,9 +15,13 @@ from num2words import num2words
 from helpers import (
     apology,
     login_required,
+    user_required,
     inr,
-    validate_phno,
-    validate_email,
+    is_valid_phno,
+    is_valid_email,
+    is_valid_password,
+    is_valid_pncd,
+    bill_num_formatr,
 )
 
 # Configure application
@@ -68,72 +63,94 @@ activepage = " active"
 @app.route("/")
 @login_required
 def index():
-    def fetch_data(type):
-        query = """
-        SELECT
-            h.id,
-            CASE
-                WHEN h.type = 'Invoice' THEN 'INV-' || h.bill_num
-                ELSE 'EST-' || h.bill_num
-            END AS bill_num,
-            h.bill_timestamp,
-            COALESCE(b1.name, '') AS billed_to,
-            COALESCE(b2.name, '') AS shipped_to,
-            h.transport,
-            h.payment,
-            h.eta,
-            h.amount,
-            json_group_array (
-                json_object (
-                    'descp',
-                    g.descp,
-                    'hsn_sac',
-                    g.hsn_sac,
-                    'uom',
-                    g.uom,
-                    'rate',
-                    g.rate,
-                    'gst',
-                    g.gst,
-                    'qty',
-                    hg.qty
-                )
-            ) AS list_of_goods
-        FROM
-            history AS h
-            LEFT JOIN beneficiaries AS b1 ON h.billed_to = b1.id
-            LEFT JOIN beneficiaries AS b2 ON h.shipped_to = b2.id
-            LEFT JOIN history_goods AS hg ON h.id = hg.history_id
-            LEFT JOIN goods AS g ON hg.goods_id = g.id
-        WHERE
-            h.company_id = ?
-            AND h.type = ?
-        GROUP BY
-            h.id,
-            h.bill_num,
-            h.bill_timestamp,
-            billed_to,
-            shipped_to,
-            h.transport,
-            h.payment,
-            h.eta,
-            h.amount
-        ORDER BY
-            h.id DESC
-        LIMIT
-            5;
-        """
+    """Show homepage"""
+    query = """
+    SELECT
+        h.id,
+        h.bill_num,
+        h.bill_timestamp,
+        h.type,
+        b1.name AS billed_to,
+        b2.name AS shipped_to,
+        h.transport,
+        h.payment,
+        h.eta,
+        h.amount,
+        g.descp,
+        g.hsn_sac,
+        g.uom,
+        g.rate,
+        g.gst,
+        hg.qty,
+        hg.amount AS good_amount
+    FROM
+        (
+            SELECT
+                id
+            FROM
+                history
+            WHERE
+                company_id = ?
+                AND type = ?
+            ORDER BY
+                id DESC
+            LIMIT
+                5
+        ) AS distinct_ids
+        JOIN history AS h ON distinct_ids.id = h.id
+        LEFT JOIN beneficiaries AS b1 ON h.billed_to = b1.id
+        LEFT JOIN beneficiaries AS b2 ON h.shipped_to = b2.id
+        LEFT JOIN history_goods AS hg ON h.id = hg.history_id
+        LEFT JOIN goods AS g ON hg.goods_id = g.id;
+    """
 
-        result = db.execute(query, session["company_id"], type)
+    try:
+        invoice_data = db.execute(query, session["company_id"], "Invoice")
+        quotation_data = db.execute(query, session["company_id"], "Quotation")
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: IND-HIST-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
-        return result
+    invoice_list = []
+    quotation_list = []
+    current_history_id = None
 
-    invoice_list = fetch_data("Invoice")
-    quotation_list = fetch_data("Quotation")
+    for history in invoice_data + quotation_data:
+        if history["id"] != current_history_id:
+            current_history_id = history["id"]
+            entry = {
+                "id": history["id"],
+                "bill_num": bill_num_formatr(
+                    history["type"], history["bill_timestamp"], history["bill_num"]
+                ),
+                "bill_timestamp": history["bill_timestamp"],
+                "billed_to": history["billed_to"] or "",
+                "shipped_to": history["shipped_to"] or "",
+                "transport": history["transport"] or "",
+                "payment": history["payment"] or "",
+                "eta": history["eta"] or "",
+                "amount": history["amount"],
+                "list_of_goods": [],
+            }
 
-    # Process the list_of_goods field to convert it from a string to a JSON object
-    for item in invoice_list + quotation_list:
-        item["list_of_goods"] = json.loads(item["list_of_goods"])
+            if history["type"] == "Invoice":
+                invoice_list.append(entry)
+            else:
+                quotation_list.append(entry)
+
+        entry["list_of_goods"].append(
+            {
+                "descp": history["descp"],
+                "hsn_sac": history["hsn_sac"] or "",
+                "uom": history["uom"] or "",
+                "rate": history["rate"],
+                "gst": history["gst"],
+                "qty": history["qty"],
+                "amount": history["good_amount"],
+            }
+        )
 
     return render_template(
         "index.html",
@@ -146,39 +163,37 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
-
-    # Forget any user_id
     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        login_data = request.form
 
-        # Ensure username was submitted
-        if not username:
-            return apology("must provide username", 403)
+        required_fields = ("username", "password")
+        missing_fields = [
+            field for field in required_fields if not login_data.get(field)
+        ]
+        if missing_fields:
+            return apology(f"{', '.join(missing_fields)} not provided", 403)
 
-        # Ensure password was submitted
-        elif not password:
-            return apology("must provide password", 403)
+        try:
+            logged_user_db = db.execute(
+                "SELECT * FROM users WHERE username = ?", login_data["username"]
+            )
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: LOG-USR-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
 
-        # Query database for username
-        loguser = db.execute("SELECT * FROM users WHERE username = ?", username)
-        # print(loguser)
+        if not logged_user_db:
+            return apology("Invalid username", 400)
+        if not check_password_hash(logged_user_db[0]["hash"], login_data["password"]):
+            return apology("Invalid password", 400)
 
-        # Ensure username exists and password is correct
-        if len(loguser) != 1 or not check_password_hash(loguser[0]["hash"], password):
-            return apology("invalid username and/or password", 403)
+        session["user_id"] = logged_user_db[0]["id"]
+        session["company_id"] = logged_user_db[0]["company_id"]
 
-        # Remember which user has logged in and which company he belongs to
-        session["user_id"] = loguser[0]["id"]
-        session["company_id"] = loguser[0]["company_id"]
-
-        # Redirect user to home page
         return redirect("/")
-
-    # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("login.html", loginnav=activepage)
 
@@ -199,17 +214,23 @@ def logout():
 def invoice():
     """Generate a invoice and send it to the user"""
 
-    # Get the last invoice number which is in the format of financial years-month-six digit number
-    invoice_num = db.execute(
-        "SELECT bill_num FROM history WHERE company_id = ? and type = ? ORDER BY id DESC LIMIT 1",
-        session["company_id"],
-        "Invoice",
-    )
+    # Get the last invoice number
+    try:
+        invoice_num_db = db.execute(
+            "SELECT bill_num, bill_timestamp FROM history WHERE company_id = ? AND type = ? ORDER BY id DESC LIMIT 1",
+            session["company_id"],
+            "Invoice",
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: INV-NUM-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
-    # Reset the invoice number every year on the 1st of April
+    # Reset the invoice number every financial year on the 1st of April
     current_date = datetime.date.today()
 
-    if len(invoice_num) == 0:
+    if not invoice_num_db:
         invoice_num = 1
         if current_date.month < 4:
             year = current_date.year - 1
@@ -217,351 +238,412 @@ def invoice():
             year = current_date.year
 
     else:
+        invoice_num_db = invoice_num_db[0]
         if current_date.month < 4:
             year = current_date.year - 1
-            invoice_num = int(invoice_num[0]["bill_num"][-6:]) + 1
+            invoice_num = invoice_num_db["bill_num"] + 1
 
         else:
             year = current_date.year
-            if invoice_num[0]["bill_num"][3:5] == str(current_date.year):
+            if int(invoice_num_db["bill_timestamp"][5:7]) < 4:
                 invoice_num = 1
             else:
-                invoice_num = int(invoice_num[0]["bill_num"][-6:]) + 1
+                invoice_num = invoice_num_db["bill_num"] + 1
 
-    invoice_num_db = f"{str(year)[-2:]}/{str(year + 1)[-2:]}-{str(current_date.month).zfill(2)}-{str(invoice_num).zfill(6)}"
-    invoice_num_formatted = f"INV-{invoice_num_db}"
-    IN_format = current_date.strftime("%d/%m/%Y")
+    invoice_num_formatted = f"INV-{str(year)[-2:]}/{str(year + 1)[-2:]}-{str(current_date.month).zfill(2)}-{str(invoice_num).zfill(6)}"
+    IN_format = current_date.strftime("%d-%m-%Y")
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-        invoicedata = request.form
-        # print(invoicedata)
+        invoice_data = request.form
 
-        company = db.execute(
-            "SELECT * FROM companies WHERE id = ?", session["company_id"]
+        clients_billing_fields = (
+            "bname",
+            "bphno1",
+            "bphno2",
+            "bgstin",
+            "baddrBnm",
+            "baddrBno",
+            "baddrFlno",
+            "baddrSt",
+            "baddrLoc",
+            "baddrDist",
+            "baddrState",
+            "baddrPncd",
         )
-        company = company[0]
-        company["addr"] = (
-            company["addrBnm"]
-            + " "
-            + company["addrBno"]
-            + " "
-            + company["addrFlno"]
-            + " "
-            + company["addrSt"]
-            + " "
-            + company["addrLoc"]
-            + " "
-            + company["addrDist"]
-            + "-"
-            + company["addrPncd"]
-            + " "
-            + company["addrState"]
+        clients_shipping_fields = (
+            "sname",
+            "sphno1",
+            "sphno2",
+            "sgstin",
+            "saddrBnm",
+            "saddrBno",
+            "saddrFlno",
+            "saddrSt",
+            "saddrLoc",
+            "saddrDist",
+            "saddrState",
+            "saddrPncd",
         )
-        company["phno"] = company["phno1"] + ", " + company["phno2"]
-
-        invoicedata1 = {}
-
-        # Temporarily Create Sgstin Number
-        invoicedata1["sgstin"] = "8975463213079854"
-
-        invoicedata1["baddr"] = (
-            invoicedata["baddrBnm"]
-            + " "
-            + invoicedata["baddrBno"]
-            + " "
-            + invoicedata["baddrFlno"]
-            + " "
-            + invoicedata["baddrSt"]
-            + " "
-            + invoicedata["baddrLoc"]
-            + " "
-            + invoicedata["baddrDist"]
-            + "-"
-            + invoicedata["baddrPncd"]
-            + " "
-            + invoicedata["baddrState"]
+        goods_fields = (
+            "serialNumber",
+            "descp",
+            "hsn_sac",
+            "qty",
+            "uom",
+            "rate",
+            "amount",
+            "gst",
         )
-
-        invoicedata1["bphno"] = invoicedata["bphno"] + ", " + invoicedata["bphno1"]
-
-        invoicedata1["saddr"] = (
-            invoicedata["saddrBnm"]
-            + " "
-            + invoicedata["saddrBno"]
-            + " "
-            + invoicedata["saddrFlno"]
-            + " "
-            + invoicedata["saddrSt"]
-            + " "
-            + invoicedata["saddrLoc"]
-            + " "
-            + invoicedata["saddrDist"]
-            + "-"
-            + invoicedata["saddrPncd"]
-            + " "
-            + invoicedata["saddrState"]
+        info_fields = (
+            "transport-mode",
+            "payment-mode",
+            "eta",
         )
+        other_fields = ("total-amount",)
+        missing_fields = [
+            field
+            for field in clients_billing_fields
+            + clients_shipping_fields
+            + goods_fields
+            + info_fields
+            + other_fields
+            if invoice_data.get(field) is None
+        ]
+        if missing_fields:
+            message = f"{', '.join(missing_fields)} not provided"
+            return render_template("message.html", message=message), 403
 
-        invoicedata1["sphno"] = invoicedata["sphno"] + ", " + invoicedata["sphno1"]
-
-        temp = {
-            "serialNumber": invoicedata.getlist("serialNumber"),
-            "desc": invoicedata.getlist("desc"),
-            "hsn_sac": invoicedata.getlist("hsn_sac"),
-            "qty": invoicedata.getlist("qty"),
-            "uom": invoicedata.getlist("uom"),
-            "rate": invoicedata.getlist("rate"),
-            "gst": invoicedata.getlist("gst"),
+        goods_data = {
+            field: [value.strip() for value in invoice_data.getlist(field)]
+            for field in goods_fields
         }
 
-        # Convert the strings to floats and round to 2 decimal places
-        temp["qty"] = [round(float(item), 2) for item in temp["qty"]]
-        temp["rate"] = [round(float(item), 2) for item in temp["rate"]]
-        temp["gst"] = [round(float(item), 2) for item in temp["gst"]]
+        required_goods_fields = {"descp": "", "qty": 0.001, "rate": 0.01, "gst": 0}
+        missing_required_goods_fields = [
+            key for key in required_goods_fields.keys() if not all(goods_data[key])
+        ]
+        if missing_required_goods_fields:
+            message = f"{', '.join(missing_required_goods_fields)} not provided"
+            return render_template("message.html", message=message), 403
 
-        temp["amount"] = []
-        for i in range(len(temp["serialNumber"])):
-            temp["amount"].append(round(temp["rate"][i] * temp["qty"][i], 2))
+        required_goods_fields.pop("descp")
 
-        invoicedata1["total-amount"] = round(sum(temp["amount"]), 2)
-        invoicedata1["grand-total"] = round(invoicedata1["total-amount"])
-        invoicedata1["round-off"] = round(
-            invoicedata1["total-amount"] - invoicedata1["grand-total"]
-        )
-
-        temp["cgstrate"] = []
-        temp["cgstamount"] = []
-        temp["sgstrate"] = []
-        temp["sgstamount"] = []
-        temp["igstrate"] = []
-        temp["igstamount"] = []
-        total = {}
-        total["qty"] = 0
-        total["amount"] = 0
-        total["cgstamount"] = 0
-        total["sgstamount"] = 0
-        total["igstamount"] = 0
-        ograte = []
-        # Calculate rate and amount in temp without gst
-        for i in range(len(temp["serialNumber"])):
-            ograte.append(temp["rate"][i])
-            temp["rate"][i] = round(temp["rate"][i] * (1 - (temp["gst"][i] / 100)), 2)
-            temp["amount"][i] = round(temp["rate"][i] * temp["qty"][i], 2)
-            temp["cgstrate"].append(round(temp["gst"][i] / 2, 2))
-            temp["cgstamount"].append(
-                round((temp["cgstrate"][i] / 100) * temp["amount"][i], 2)
+        try:
+            goods_data.update(
+                {
+                    key: [
+                        float(value)
+                        for value in goods_data[key]
+                        if float(value) >= min_value
+                    ]
+                    for key, min_value in required_goods_fields.items()
+                }
             )
-            total["qty"] += temp["qty"][i]
-            total["amount"] += temp["amount"][i]
-            total["cgstamount"] += temp["cgstamount"][i]
-            if company["addrState"] == invoicedata["baddrState"]:
-                temp["sgstrate"].append(round(temp["gst"][i] / 2, 2))
-                temp["sgstamount"].append(
-                    round((temp["sgstrate"][i] / 100) * temp["amount"][i], 2)
-                )
-                temp["igstrate"].append("")
-                temp["igstamount"].append("")
-                total["sgstamount"] += temp["sgstamount"][i]
-            else:
-                temp["igstrate"].append(round(temp["gst"][i], 2))
-                temp["igstamount"].append(
-                    round((temp["igstrate"][i] / 100) * temp["amount"][i], 2)
-                )
-                temp["sgstrate"].append("")
-                temp["sgstamount"].append("")
-                total["igstamount"] += temp["igstamount"][i]
+        except:
+            message = f"Invalid values in {' or '.join(required_goods_fields.keys())}"
+            return render_template("message.html", message=message), 403
 
-        invoicedata1["amountwords"] = (
-            num2words(
-                invoicedata1["total-amount"],
-                lang="en_IN",
-                to="currency",
-                currency="INR",
-            ).title()
-            + " Only"
+        goods_data_length = {len(values) for values in goods_data.values()}
+        if len(goods_data_length) != 1:
+            message = f"All fields in the list of goods must have the same length and {', '.join(required_goods_fields.keys())} fields must be higher than their minimum values"
+            return render_template("message.html", message=message), 403
+
+        clients_data = {
+            field: invoice_data[field].strip()
+            for field in clients_billing_fields + clients_shipping_fields + info_fields
+        }
+
+        pncd_fields = ("baddrPncd", "saddrPncd")
+        if any(
+            not is_valid_pncd(clients_data[field])
+            for field in pncd_fields
+            if clients_data[field]
+        ):
+            message = "Invalid Pincode"
+            return render_template("message.html", message=message), 403
+
+        phno_fields = ("phno1", "phno2")
+        phno_fields_with_b = [f"b{field}" for field in phno_fields]
+        phno_fields_with_s = [f"s{field}" for field in phno_fields]
+        if any(
+            not is_valid_phno(clients_data[field])
+            for field in phno_fields_with_b + phno_fields_with_s
+            if clients_data[field]
+        ):
+            message = "Invalid Phone Number"
+            return render_template("message.html", message=message), 403
+
+        # Dummy data for db insert on benificiary """need to CHANGE"""
+        clients_data["sgstin"] = ""
+        #############
+
+        address_fields = (
+            "addrBnm",
+            "addrBno",
+            "addrFlno",
+            "addrSt",
+            "addrLoc",
+            "addrDist",
+            "addrPncd",
+            "addrState",
+        )
+        address_fields_with_b = [f"b{field}" for field in address_fields]
+        clients_data["baddr"] = " ".join(
+            clients_data[field]
+            for field in address_fields_with_b
+            if clients_data[field]
+        )
+        clients_data["bphno"] = ", ".join(
+            clients_data[field] for field in phno_fields_with_b if clients_data[field]
         )
 
-        # Convert temp from dict of list to list of dict as items
-        # items = [
-        #     {key: value[i] for key, value in temp.items()}
-        #     for i in range(len(temp["serialNumber"]))
-        # ]
-        items = [dict(zip(temp, values)) for values in zip(*temp.values())]
+        address_fields_with_s = [f"s{field}" for field in address_fields]
+        clients_data["saddr"] = " ".join(
+            clients_data[field]
+            for field in address_fields_with_s
+            if clients_data[field]
+        )
+        clients_data["sphno"] = ", ".join(
+            clients_data[field] for field in phno_fields_with_s if clients_data[field]
+        )
+        if clients_data["eta"]:
+            try:
+                clients_data["eta"] = datetime.datetime.strptime(
+                    clients_data["eta"], "%Y-%m-%d"
+                ).strftime("%d-%m-%Y")
+            except:
+                message = f"Invalid values in ETA"
+                return render_template("message.html", message=message), 403
+
+        goods_data["amount"] = [
+            rate * qty for rate, qty in zip(goods_data["rate"], goods_data["qty"])
+        ]
+
+        genratd_data = {}
+        genratd_data["total_qty"] = round(sum(goods_data["qty"]), 3)
+        genratd_data["total_amount"] = round(sum(goods_data["amount"]), 2)
+        genratd_data["grand_total"] = round(genratd_data["total_amount"])
+        genratd_data["round_off"] = round(
+            genratd_data["grand_total"] - genratd_data["total_amount"], 2
+        )
+        genratd_data[
+            "total_amount_words"
+        ] = f"{num2words(float(genratd_data['grand_total']), lang='en_IN', to='currency', currency='INR').title()} Only"
+
+        goods_data["rate_wo_gst"] = [
+            round(rate * (1 - gst / 100), 2)
+            for rate, gst in zip(goods_data["rate"], goods_data["gst"])
+        ]
+        goods_data["amount_wo_gst"] = [
+            round(rate * qty, 2)
+            for rate, qty in zip(goods_data["rate_wo_gst"], goods_data["qty"])
+        ]
+        genratd_data["total_amount_wo_gst"] = round(sum(goods_data["amount_wo_gst"]), 2)
+
+        try:
+            company_db = db.execute(
+                "SELECT * FROM companies WHERE id = ?", session["company_id"]
+            )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: INV-COMP-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
+
+        company_db = company_db[0]
+        company_db["addr"] = " ".join(
+            company_db[field] for field in address_fields if company_db[field]
+        )
+        company_db["phno"] = ", ".join(
+            company_db[field] for field in phno_fields if company_db[field]
+        )
+
+        if company_db["addrState"] != clients_data["baddrState"]:
+            goods_data["gst_amount"] = [
+                round((gst_percent / 100) * amount, 2)
+                for gst_percent, amount in zip(goods_data["gst"], goods_data["amount"])
+            ]
+            genratd_data["total_gst_amount"] = round(sum(goods_data["gst_amount"]), 2)
+        else:
+            goods_data["cgst_percent"] = [
+                round(gst / 2, 2) for gst in goods_data["gst"]
+            ]
+            goods_data["cgst_amount"] = [
+                round((cgst_percent / 100) * amount, 2)
+                for cgst_percent, amount in zip(
+                    goods_data["cgst_percent"], goods_data["amount"]
+                )
+            ]
+            genratd_data["total_cgst_amount"] = round(sum(goods_data["cgst_amount"]), 2)
+            goods_data["sgst_percent"] = goods_data["cgst_percent"]
+            goods_data["sgst_amount"] = goods_data["cgst_amount"]
+            genratd_data["total_sgst_amount"] = genratd_data["total_cgst_amount"]
+
+        goods_data_list = [
+            dict(zip(goods_data.keys(), values)) for values in zip(*goods_data.values())
+        ]
+
+        try:
+            user_db = db.execute(
+                "SELECT username, type FROM users WHERE id = ?", session["user_id"]
+            )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: INV-NAME-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
 
         rendered_template = render_template(
-            "cl_invoice_template_custom.html",
-            company=company,
-            invoicedata=invoicedata,
-            invoicedata1=invoicedata1,
-            items=items,
+            "cl_invoice_template.html",
+            company=company_db,
+            clients_data=clients_data,
+            goods_data=goods_data_list,
+            genratd_data=genratd_data,
             invoice_num=invoice_num_formatted,
             invoice_date=IN_format,
-            total=total,
+            user=user_db[0],
         )
 
-        # Configure pdfkit options
         pdf_options = {
             "page-size": "A4",
-            # "margin-top": "0mm",
-            # "margin-right": "0mm",
-            # "margin-bottom": "0mm",
-            # "margin-left": "0mm",
             "encoding": "UTF-8",
-            # # "no-outline": None,
         }
 
-        # send response to browser as pdf
         pdf = pdfkit.from_string(rendered_template, False, options=pdf_options)
 
-        # When new beneficiary is added, add that to beneficiaries table in database
-        if (
-            invoicedata["billed_to"] == invoicedata["shipped_to"]
-            and invoicedata["baddrBno"] == invoicedata["saddrBno"]
-        ):
-            ben_inv_id = db.execute(
-                "SELECT id FROM beneficiaries WHERE name = ? AND company_id = ?",
-                invoicedata["billed_to"],
-                session["company_id"],
-            )
-
+        def get_or_insert_ben(select_query, select_params, insert_query, insert_params):
             try:
-                ben_inv_id = ben_inv_id[0]["id"]
-            except:
-                ben_inv_id = db.execute(
-                    "INSERT INTO beneficiaries (name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, gstin, type, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    invoicedata["billed_to"],
-                    invoicedata["baddrBnm"],
-                    invoicedata["baddrBno"],
-                    invoicedata["baddrFlno"],
-                    invoicedata["baddrSt"],
-                    invoicedata["baddrLoc"],
-                    invoicedata["baddrDist"],
-                    invoicedata["baddrState"],
-                    invoicedata["baddrPncd"],
-                    invoicedata["bphno"],
-                    invoicedata["bphno1"],
-                    invoicedata["bgstin"],
-                    "billed",
-                    session["company_id"],
-                    session["user_id"],
+                ben_id_db = db.execute(select_query, *select_params)
+                ben_id = (
+                    ben_id_db[0]["id"]
+                    if ben_id_db
+                    else db.execute(insert_query, *insert_params)
                 )
-            ben_ship_id = ben_inv_id
+            except Exception as e:
+                message = f"Something went wrong, please try again.\nError-code: INV-BEN-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                return render_template("message.html", message=message), 500
 
-        else:
-            ben_inv_id = db.execute(
-                "SELECT id FROM beneficiaries WHERE name = ? AND addrBnm = ? AND company_id = ?",
-                invoicedata["billed_to"],
-                invoicedata["baddrBnm"],
-                session["company_id"],
-            )
+            return ben_id
 
-            try:
-                ben_inv_id = ben_inv_id[0]["id"]
-            except:
-                ben_inv_id = db.execute(
-                    "INSERT INTO beneficiaries (name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, gstin, type, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    invoicedata["billed_to"],
-                    invoicedata["baddrBnm"],
-                    invoicedata["baddrBno"],
-                    invoicedata["baddrFlno"],
-                    invoicedata["baddrSt"],
-                    invoicedata["baddrLoc"],
-                    invoicedata["baddrDist"],
-                    invoicedata["baddrState"],
-                    invoicedata["baddrPncd"],
-                    invoicedata["bphno"],
-                    invoicedata["bphno1"],
-                    invoicedata["bgstin"],
-                    "invoiced",
-                    session["company_id"],
-                    session["user_id"],
-                )
-
-            ben_ship_id = db.execute(
-                "SELECT id FROM beneficiaries WHERE name = ? and addrBnm = ? AND company_id = ?",
-                invoicedata["shipped_to"],
-                invoicedata["saddrBnm"],
-                session["company_id"],
-            )
-
-            try:
-                ben_ship_id = ben_ship_id[0]["id"]
-            except:
-                ben_ship_id = db.execute(
-                    "INSERT INTO beneficiaries (name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, gstin, type, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    invoicedata["shipped_to"],
-                    invoicedata["saddrBnm"],
-                    invoicedata["saddrBno"],
-                    invoicedata["saddrFlno"],
-                    invoicedata["saddrSt"],
-                    invoicedata["saddrLoc"],
-                    invoicedata["saddrDist"],
-                    invoicedata["saddrState"],
-                    invoicedata["saddrPncd"],
-                    invoicedata["sphno"],
-                    invoicedata["sphno1"],
-                    invoicedata1["sgstin"],
-                    "shipped",
-                    session["company_id"],
-                    session["user_id"],
-                )
-
-        # Store history in database
-        history_id = db.execute(
-            "INSERT INTO history (bill_num, type, billed_to, shipped_to, transport, payment, eta, amount, pdf, company_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            invoice_num_db,
-            "Invoice",
-            ben_inv_id,
-            ben_ship_id,
-            invoicedata["transport-mode"],
-            invoicedata["payment-mode"],
-            invoicedata["eta"],
-            invoicedata1["grand-total"],
-            pdf,
+        ben_select_query = "SELECT id FROM beneficiaries WHERE name = ? AND phno1 = ? AND company_id = ?"
+        ben_select_inv_params = (
+            clients_data["bname"],
+            clients_data["bphno1"],
+            session["company_id"],
+        )
+        ben_select_ship_params = (
+            clients_data["sname"],
+            clients_data["sphno1"],
+            session["company_id"],
+        )
+        ben_insert_query = "INSERT INTO beneficiaries (name, phno1, phno2, gstin, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        ben_insert_inv_params = (
+            *(
+                clients_data[field] if clients_data[field] else None
+                for field in clients_billing_fields
+            ),
+            session["company_id"],
+            session["user_id"],
+        )
+        ben_insert_ship_params = (
+            *(
+                clients_data[field] if clients_data[field] else None
+                for field in clients_shipping_fields
+            ),
             session["company_id"],
             session["user_id"],
         )
 
-        if not history_id:
-            return apology("Something went wrong", 500)
+        ben_inv_id = None
+        ben_ship_id = None
+        if clients_data["bname"]:
+            ben_inv_id = get_or_insert_ben(
+                ben_select_query,
+                ben_select_inv_params,
+                ben_insert_query,
+                ben_insert_inv_params,
+            )
 
-        # When new items are added, add that to goods table in database
-        for i in range(len(items)):
-            dbitemid = db.execute(
-                "SELECT id FROM goods WHERE desc = ? AND company_id = ?",
-                items[i]["desc"],
+        if (
+            clients_data["bname"] == clients_data["sname"]
+            and clients_data["bphno1"] == clients_data["sphno1"]
+        ):
+            ben_ship_id = ben_inv_id
+
+        elif clients_data["sname"]:
+            ben_ship_id = get_or_insert_ben(
+                ben_select_query,
+                ben_select_ship_params,
+                ben_insert_query,
+                ben_insert_ship_params,
+            )
+
+        try:
+            history_id = db.execute(
+                "INSERT INTO history (bill_num, type, billed_to, shipped_to, transport, payment, eta, amount, pdf, company_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                invoice_num,
+                "Invoice",
+                ben_inv_id,
+                ben_ship_id,
+                *(clients_data[field] for field in info_fields),
+                genratd_data["grand_total"],
+                pdf,
+                session["company_id"],
+                session["user_id"],
+            )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: INV-HIST-INS-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
+
+        try:
+            goods_data_db = db.execute(
+                "SELECT id, descp FROM goods WHERE descp IN (?) AND company_id = ?",
+                goods_data["descp"],
                 session["company_id"],
             )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: INV-GOODS-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
 
+        if len(goods_data_db) not in goods_data_length:
+            goods_in_db = {item["descp"] for item in goods_data_db}
+            goods_to_add_list = [
+                item for item in goods_data_list if item["descp"] not in goods_in_db
+            ]
+            for good in goods_to_add_list:
+                try:
+                    good_id = db.execute(
+                        "INSERT INTO goods (descp, hsn_sac, uom, rate, gst, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        good["descp"],
+                        good["hsn_sac"] if good["hsn_sac"] else None,
+                        good["uom"] if good["uom"] else None,
+                        good["rate"],
+                        good["gst"],
+                        session["company_id"],
+                        session["user_id"],
+                    )
+                except Exception as e:
+                    message = f"Something went wrong, please try again.\nError-code: INV-GOODS-INS-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                    return render_template("message.html", message=message), 500
+
+                goods_data_db.append({"id": good_id, "descp": good["descp"]})
+
+        id_mapping = {item["descp"]: item["id"] for item in goods_data_db}
+
+        goods_data_list = [
+            {**good, "id": id_mapping[good["descp"]]} for good in goods_data_list
+        ]
+
+        for good in goods_data_list:
             try:
-                dbitemid = dbitemid[0]["id"]
-            except:
-                dbitemid = db.execute(
-                    "INSERT INTO goods (desc, hsn_sac, uom, rate, gst, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    items[i]["desc"],
-                    items[i]["hsn_sac"],
-                    items[i]["uom"],
-                    ograte[i],
-                    items[i]["gst"],
-                    session["company_id"],
-                    session["user_id"],
+                db.execute(
+                    "INSERT INTO history_goods (history_id, goods_id, qty, amount) VALUES (?, ?, ?, ?)",
+                    history_id,
+                    good["id"],
+                    good["qty"],
+                    good["amount"],
                 )
+            except Exception as e:
+                message = f"Something went wrong, please try again.\nError-code: INV-GOODS-LINK-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                return render_template("message.html", message=message), 500
 
-            db.execute(
-                "INSERT INTO history_goods (history_id, goods_id, qty) VALUES (?, ?, ?)",
-                history_id,
-                dbitemid,
-                items[i]["qty"],
-            )
-
-        # return invoice as pdf
-        # response = make_response(pdf)
-        # response.headers["Content-Type"] = "application/pdf"
-        # response.headers[
-        #     "Content-Disposition"
-        # ] = f"inline; filename={invoice_num_formatted}.pdf"
-        # return response
         return send_file(
             io.BytesIO(pdf),
             mimetype="application/pdf",
@@ -579,235 +661,330 @@ def invoice():
         )
 
 
-@app.route("/quote", methods=["GET", "POST"])
+@app.route("/quotation", methods=["GET", "POST"])
 @login_required
-def quote():
+def quotation():
     """Generate a quotation and send it to the user"""
 
-    # Get the last quotation number which is in the format of financial years-month-six digit number
-    quote_num = db.execute(
-        "SELECT bill_num FROM history WHERE company_id = ? and type = ? ORDER BY id DESC LIMIT 1",
-        session["company_id"],
-        "Quotation",
-    )
+    # Get the last quotation number
+    try:
+        quotation_num_db = db.execute(
+            "SELECT bill_num, bill_timestamp FROM history WHERE company_id = ? and type = ? ORDER BY id DESC LIMIT 1",
+            session["company_id"],
+            "Quotation",
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: QUOT-NUM-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
     # Reset the quotation number every year on the 1st of April
     current_date = datetime.date.today()
 
-    if len(quote_num) == 0:
-        quote_num = 1
+    if not quotation_num_db:
+        quotation_num = 1
         if current_date.month < 4:
             year = current_date.year - 1
         else:
             year = current_date.year
 
     else:
+        quotation_num_db = quotation_num_db[0]
         if current_date.month < 4:
             year = current_date.year - 1
-            quote_num = int(quote_num[0]["bill_num"][-6:]) + 1
+            quotation_num = quotation_num_db["bill_num"] + 1
 
         else:
             year = current_date.year
-            if quote_num[0]["bill_num"][3:5] == str(current_date.year):
-                quote_num = 1
+            if int(quotation_num_db["bill_timestamp"][5:7]) < 4:
+                quotation_num = 1
             else:
-                quote_num = int(quote_num[0]["bill_num"][-6:]) + 1
+                quotation_num = quotation_num_db["bill_num"] + 1
 
-    quote_num_db = f"{str(year)[-2:]}/{str(year + 1)[-2:]}-{str(current_date.month).zfill(2)}-{str(quote_num).zfill(6)}"
-    quote_num_formatted = f"EST-{quote_num_db}"
+    quotation_num_formatted = f"EST-{str(year)[-2:]}/{str(year + 1)[-2:]}-{str(current_date.month).zfill(2)}-{str(quotation_num).zfill(6)}"
     IN_format = current_date.strftime("%d/%m/%Y")
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-        quotedata = request.form
-        # print(quotedata)
+        quotation_data = request.form
 
-        company = db.execute(
-            "SELECT * FROM companies WHERE id = ?", session["company_id"]
+        clients_fields = (
+            "qname",
+            "phno1",
         )
-        company = company[0]
-        company["addr"] = (
-            company["addrBnm"]
-            + " "
-            + company["addrBno"]
-            + " "
-            + company["addrFlno"]
-            + " "
-            + company["addrSt"]
-            + " "
-            + company["addrLoc"]
-            + " "
-            + company["addrDist"]
-            + "-"
-            + company["addrPncd"]
-            + " "
-            + company["addrState"]
+        goods_fields = (
+            "serialNumber",
+            "descp",
+            "hsn_sac",
+            "qty",
+            "uom",
+            "rate",
+            "amount",
+            "gst",
         )
-        company["phno"] = company["phno1"] + ", " + company["phno2"]
+        info_fields = ("eta",)
+        other_fields = ("total-amount",)
+        missing_fields = [
+            field
+            for field in clients_fields + goods_fields + info_fields + other_fields
+            if quotation_data.get(field) is None
+        ]
+        if missing_fields:
+            message = f"{', '.join(missing_fields)} not provided"
+            return render_template("message.html", message=message), 403
 
-        temp = {
-            "serialNumber": quotedata.getlist("serialNumber"),
-            "desc": quotedata.getlist("desc"),
-            "hsn_sac": quotedata.getlist("hsn_sac"),
-            "qty": quotedata.getlist("qty"),
-            "uom": quotedata.getlist("uom"),
-            "rate": quotedata.getlist("rate"),
-            "gst": quotedata.getlist("gst"),
+        goods_data = {
+            field: [value.strip() for value in quotation_data.getlist(field)]
+            for field in goods_fields
         }
 
-        # Convert the strings to floats and round to 2 decimal places
-        temp["qty"] = [round(float(item), 2) for item in temp["qty"]]
-        temp["rate"] = [round(float(item), 2) for item in temp["rate"]]
-        temp["gst"] = [round(float(item), 2) for item in temp["gst"]]
+        required_goods_fields = {"descp": "", "qty": 0.001, "rate": 0.01, "gst": 0}
+        missing_required_goods_fields = [
+            key for key in required_goods_fields.keys() if not all(goods_data[key])
+        ]
+        if missing_required_goods_fields:
+            message = f"{', '.join(missing_required_goods_fields)} not provided"
+            return render_template("message.html", message=message), 403
 
-        temp["amount"] = []
-        for i in range(len(temp["serialNumber"])):
-            temp["amount"].append(round(temp["rate"][i] * temp["qty"][i], 2))
+        required_goods_fields.pop("descp")
 
-        quotedata1 = {}
-
-        quotedata1["total-amount"] = round(sum(temp["amount"]), 2)
-        quotedata1["grand-total"] = round(quotedata1["total-amount"])
-        quotedata1["round-off"] = round(
-            quotedata1["total-amount"] - quotedata1["grand-total"]
-        )
-
-        temp["cgstrate"] = []
-        temp["cgstamount"] = []
-        temp["sgstrate"] = []
-        temp["sgstamount"] = []
-        total = {}
-        total["qty"] = 0
-        total["amount"] = 0
-        total["cgstamount"] = 0
-        total["sgstamount"] = 0
-        ograte = []
-        # Calculate rate and amount in temp without gst
-        for i in range(len(temp["serialNumber"])):
-            ograte.append(temp["rate"][i])
-            temp["rate"][i] = round(temp["rate"][i] * (1 - (temp["gst"][i] / 100)), 2)
-            temp["amount"][i] = round(temp["rate"][i] * temp["qty"][i], 2)
-            temp["cgstrate"].append(round(temp["gst"][i] / 2, 2))
-            temp["cgstamount"].append(
-                round((temp["cgstrate"][i] / 100) * temp["amount"][i], 2)
+        try:
+            goods_data.update(
+                {
+                    key: [
+                        float(value)
+                        for value in goods_data[key]
+                        if float(value) >= min_value
+                    ]
+                    for key, min_value in required_goods_fields.items()
+                }
             )
-            total["qty"] += temp["qty"][i]
-            total["amount"] += temp["amount"][i]
-            total["cgstamount"] += temp["cgstamount"][i]
-            temp["sgstrate"].append(round(temp["gst"][i] / 2, 2))
-            temp["sgstamount"].append(
-                round((temp["sgstrate"][i] / 100) * temp["amount"][i], 2)
-            )
-            total["sgstamount"] += temp["sgstamount"][i]
+        except Exception as e:
+            message = f"Invalid values in {' or '.join(required_goods_fields.keys())}"
+            return render_template("message.html", message=message), 403
 
-        quotedata1["amountwords"] = (
-            num2words(
-                quotedata1["total-amount"],
-                lang="en_IN",
-                to="currency",
-                currency="INR",
-            ).title()
-            + " Only"
-        )
+        goods_data_length = {len(values) for values in goods_data.values()}
+        if len(goods_data_length) != 1:
+            message = f"All fields in the list of goods must have the same length and {', '.join(required_goods_fields.keys())} fields must be higher than their minimum values"
+            return render_template("message.html", message=message), 403
 
-        items = [dict(zip(temp, values)) for values in zip(*temp.values())]
-
-        rendered_template = render_template(
-            "cl_quote_template_custom.html",
-            company=company,
-            quotedata=quotedata,
-            quotedata1=quotedata1,
-            items=items,
-            quote_num=quote_num_formatted,
-            quote_date=IN_format,
-            total=total,
-        )
-
-        # Configure pdfkit options
-        pdf_options = {
-            "page-size": "A4",
-            # "margin-top": "0mm",
-            # "margin-right": "0mm",
-            # "margin-bottom": "0mm",
-            # "margin-left": "0mm",
-            "encoding": "UTF-8",
-            # # "no-outline": None,
+        clients_data = {
+            field: quotation_data[field].strip()
+            for field in clients_fields + info_fields
         }
 
-        # send response to browser as pdf
-        quotepdf = pdfkit.from_string(rendered_template, False, options=pdf_options)
+        if clients_data["phno1"]:
+            if not is_valid_phno(clients_data["phno1"]):
+                message = "Invalid mobile number"
+                return render_template("message.html", message=message), 403
+        if clients_data["eta"]:
+            try:
+                clients_data["eta"] = datetime.datetime.strptime(
+                    clients_data["eta"], "%Y-%m-%d"
+                ).strftime("%d-%m-%Y")
+            except:
+                message = f"Invalid values in ETA"
+                return render_template("message.html", message=message), 403
 
-        # When new beneficiary is added, add that to beneficiaries table in database
-        ben_est_id = db.execute(
-            "SELECT id FROM beneficiaries WHERE name = ? AND company_id = ?",
-            quotedata["quoted_to"],
-            session["company_id"],
+        goods_data["amount"] = [
+            rate * qty for rate, qty in zip(goods_data["rate"], goods_data["qty"])
+        ]
+
+        genratd_data = {}
+        genratd_data["total_qty"] = round(sum(goods_data["qty"]), 3)
+        genratd_data["total_amount"] = round(sum(goods_data["amount"]), 2)
+        genratd_data["grand_total"] = round(genratd_data["total_amount"])
+        genratd_data["round_off"] = round(
+            genratd_data["grand_total"] - genratd_data["total_amount"], 2
+        )
+        genratd_data[
+            "total_amount_words"
+        ] = f"{num2words(float(genratd_data['grand_total']), lang='en_IN', to='currency', currency='INR').title()} Only"
+
+        goods_data["rate_wo_gst"] = [
+            round(rate * (1 - gst / 100), 2)
+            for rate, gst in zip(goods_data["rate"], goods_data["gst"])
+        ]
+        goods_data["amount_wo_gst"] = [
+            round(rate * qty, 2)
+            for rate, qty in zip(goods_data["rate_wo_gst"], goods_data["qty"])
+        ]
+
+        goods_data["gst_amount"] = [
+            round((gst_percent / 100) * amount, 2)
+            for gst_percent, amount in zip(goods_data["gst"], goods_data["amount"])
+        ]
+
+        genratd_data["total_amount_wo_gst"] = round(sum(goods_data["amount_wo_gst"]), 2)
+        genratd_data["total_gst_amount"] = round(sum(goods_data["gst_amount"]), 2)
+
+        goods_data_list = [
+            dict(zip(goods_data.keys(), values)) for values in zip(*goods_data.values())
+        ]
+
+        address_fields = (
+            "addrBnm",
+            "addrBno",
+            "addrFlno",
+            "addrSt",
+            "addrLoc",
+            "addrDist",
+            "addrPncd",
+            "addrState",
         )
 
         try:
-            ben_est_id = ben_est_id[0]["id"]
-        except:
-            ben_est_id = db.execute(
-                "INSERT INTO beneficiaries (name, phno1, type, company_id, added_by) VALUES (?, ?, ?, ?, ?)",
-                quotedata["quoted_to"],
-                quotedata["phno"],
-                "quoted",
-                session["company_id"],
-                session["user_id"],
+            company_db = db.execute(
+                "SELECT * FROM companies WHERE id = ?", session["company_id"]
             )
-            # print(ben_est_id)
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: QUOT-COMP-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
 
-        # Store history in database
-        history_id = db.execute(
-            "INSERT INTO history (bill_num, type, billed_to, eta, amount, pdf, company_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            quote_num_db,
-            "Quotation",
-            ben_est_id,
-            quotedata["eta"],
-            quotedata1["grand-total"],
-            quotepdf,
+        company_db = company_db[0]
+        company_db["addr"] = " ".join(
+            company_db[field] for field in address_fields if company_db[field]
+        )
+        company_db["phno"] = ", ".join(
+            company_db[field] for field in ("phno1", "phno2") if company_db[field]
+        )
+
+        try:
+            user_db = db.execute(
+                "SELECT username, type FROM users WHERE id = ?", session["user_id"]
+            )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: QUOT-NAME-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
+
+        rendered_template = render_template(
+            "cl_quotation_template.html",
+            company=company_db,
+            clients_data=clients_data,
+            goods_data=goods_data_list,
+            genratd_data=genratd_data,
+            quotation_num=quotation_num_formatted,
+            quotation_date=IN_format,
+            user=user_db[0],
+        )
+
+        pdf_options = {
+            "page-size": "A4",
+            "encoding": "UTF-8",
+        }
+
+        pdf = pdfkit.from_string(rendered_template, False, options=pdf_options)
+
+        def get_or_insert_ben(select_query, select_params, insert_query, insert_params):
+            try:
+                ben_id_db = db.execute(select_query, *select_params)
+                ben_id = (
+                    ben_id_db[0]["id"]
+                    if ben_id_db
+                    else db.execute(insert_query, *insert_params)
+                )
+            except Exception as e:
+                message = f"Something went wrong, please try again.\nError-code: QUOT-BEN-INS-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                return render_template("message.html", message=message), 500
+
+            return ben_id
+
+        ben_select_query = "SELECT id FROM beneficiaries WHERE name = ? AND phno1 = ? AND company_id = ?"
+        ben_select_params = (
+            clients_data["qname"],
+            clients_data["phno1"] if clients_data["phno1"] else None,
+            session["company_id"],
+        )
+        ben_insert_query = "INSERT INTO beneficiaries (name, phno1, company_id, added_by) VALUES (?, ?, ?, ?)"
+        ben_insert_params = (
+            clients_data["qname"],
+            clients_data["phno1"] if clients_data["phno1"] else None,
             session["company_id"],
             session["user_id"],
         )
 
-        if not history_id:
-            return apology("Something went wrong", 500)
+        ben_est_id = None
+        if clients_data["qname"]:
+            ben_est_id = get_or_insert_ben(
+                ben_select_query,
+                ben_select_params,
+                ben_insert_query,
+                ben_insert_params,
+            )
 
-        # When new goods is added, add that to goods table in database
-        for i in range(len(items)):
-            dbitemid = db.execute(
-                "SELECT id FROM goods WHERE desc = ? AND company_id = ?",
-                items[i]["desc"],
+        try:
+            history_id = db.execute(
+                "INSERT INTO history (bill_num, type, billed_to, eta, amount, pdf, company_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                quotation_num,
+                "Quotation",
+                ben_est_id,
+                clients_data["eta"],
+                genratd_data["grand_total"],
+                pdf,
+                session["company_id"],
+                session["user_id"],
+            )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: QUOT-HIST-INS-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
+
+        try:
+            goods_data_db = db.execute(
+                "SELECT id, descp FROM goods WHERE descp IN (?) AND company_id = ?",
+                goods_data["descp"],
                 session["company_id"],
             )
+        except Exception as e:
+            message = f"Something went wrong, please try again.\nError-code: QUOT-GOODS-RET-{type(e).__name__}.\nDEV-INFO: {e.args}"
+            return render_template("message.html", message=message), 500
 
+        if len(goods_data_db) not in goods_data_length:
+            goods_in_db = {item["descp"] for item in goods_data_db}
+            goods_to_add_list = [
+                item for item in goods_data_list if item["descp"] not in goods_in_db
+            ]
+            for good in goods_to_add_list:
+                try:
+                    good_id = db.execute(
+                        "INSERT INTO goods (descp, hsn_sac, uom, rate, gst, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        good["descp"],
+                        good["hsn_sac"] if good["hsn_sac"] else None,
+                        good["uom"] if good["uom"] else None,
+                        good["rate"],
+                        good["gst"],
+                        session["company_id"],
+                        session["user_id"],
+                    )
+                except Exception as e:
+                    message = f"Something went wrong, please try again.\nError-code: QUOT-GOODS-INS-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                    return render_template("message.html", message=message), 500
+
+                goods_data_db.append({"id": good_id, "descp": good["descp"]})
+
+        id_mapping = {item["descp"]: item["id"] for item in goods_data_db}
+
+        goods_data_list = [
+            {**good, "id": id_mapping[good["descp"]]} for good in goods_data_list
+        ]
+
+        for good in goods_data_list:
             try:
-                dbitemid = dbitemid[0]["id"]
-            except:
-                dbitemid = db.execute(
-                    "INSERT INTO goods (desc, hsn_sac, uom, rate, gst, company_id, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    items[i]["desc"],
-                    items[i]["hsn_sac"],
-                    items[i]["uom"],
-                    ograte[i],
-                    items[i]["gst"],
-                    session["company_id"],
-                    session["user_id"],
+                db.execute(
+                    "INSERT INTO history_goods (history_id, goods_id, qty, amount) VALUES (?, ?, ?, ?)",
+                    history_id,
+                    good["id"],
+                    good["qty"],
+                    good["amount"],
                 )
+            except Exception as e:
+                message = f"Something went wrong, please try again.\nError-code: QUOT-GOODS-LINK-{type(e).__name__}.\nDEV-INFO: {e.args}"
+                return render_template("message.html", message=message), 500
 
-            db.execute(
-                "INSERT INTO history_goods (history_id, goods_id, qty) VALUES (?, ?, ?)",
-                history_id,
-                dbitemid,
-                items[i]["qty"],
-            )
-
-        # send quote as pdf
-        # import io
         return send_file(
-            io.BytesIO(quotepdf),
+            io.BytesIO(pdf),
             mimetype="application/pdf",
-            download_name=f"{quote_num_formatted}.pdf",
+            download_name=f"{quotation_num_formatted}.pdf",
             as_attachment=True,
         )
 
@@ -815,7 +992,7 @@ def quote():
     else:
         return render_template(
             "quote.html",
-            quote_num=quote_num_formatted,
+            quote_num=quotation_num_formatted,
             quote_date=IN_format,
             quotenav=activepage,
         )
@@ -825,48 +1002,81 @@ def quote():
 @login_required
 def inventory():
     """Show Inventory of goods and beneficiaries of the company"""
+    goods_query = """
+    SELECT
+        g.descp,
+        g.hsn_sac,
+        g.uom,
+        g.rate,
+        g.gst,
+        g.added_at,
+        u1.username AS added_by
+    FROM
+        goods AS g
+        JOIN users AS u1 ON g.added_by = u1.id
+    WHERE
+        g.company_id = ?
+    ORDER BY
+        g.id DESC;
+    """
+    clients_query = """
+    SELECT
+        b.name,
+        b.addrBnm,
+        b.addrBno,
+        b.addrFlno,
+        b.addrSt,
+        b.addrLoc,
+        b.addrDist,
+        b.addrState,
+        b.addrPncd,
+        b.phno1,
+        b.phno2,
+        b.gstin,
+        b.added_at,
+        u2.username AS added_by
+    FROM
+        beneficiaries AS b
+        JOIN users AS u2 ON b.added_by = u2.id
+    WHERE
+        b.company_id = ?
+    ORDER BY
+        b.id DESC;
+    """
 
-    clients_list = db.execute(
-        "SELECT name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, gstin, added_at, added_by FROM beneficiaries WHERE company_id = ?",
-        session["company_id"],
+    try:
+        goods_list = db.execute(goods_query, session["company_id"])
+        clients_list = db.execute(clients_query, session["company_id"])
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: INVN-MAT-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
+
+    optional_goods_fields = ("hsn_sac", "uom")
+    for good in goods_list:
+        good.update({k: good[k] or "" for k in optional_goods_fields})
+
+    address_fields = (
+        "addrBnm",
+        "addrBno",
+        "addrFlno",
+        "addrSt",
+        "addrLoc",
+        "addrDist",
+        "addrPncd",
+        "addrState",
     )
-    # print(clients_list)
+    phno_fields = ("phno1", "phno2")
+    optional_clients_fields = ("gstin",)
     for client in clients_list:
-        client["addr"] = (
-            client["addrBnm"]
-            + " "
-            + client["addrBno"]
-            + " "
-            + client["addrFlno"]
-            + " "
-            + client["addrSt"]
-            + " "
-            + client["addrLoc"]
-            + " "
-            + client["addrDist"]
-            + "-"
-            + client["addrPncd"]
-            + " "
-            + client["addrState"]
+        client["addr"] = " ".join(
+            client[field] for field in address_fields if client[field]
         )
-
-        client["phno"] = client["phno1"] + ", " + client["phno2"]
-        added_by = db.execute(
-            "SELECT username FROM users WHERE id = ?", client["added_by"]
+        client["phno"] = ", ".join(
+            client[field] for field in phno_fields if client[field]
         )
-
-        client["added_by"] = added_by[0]["username"]
-
-        goods_list = db.execute(
-            "SELECT desc, hsn_sac, uom, rate, gst, added_at, added_by FROM goods WHERE company_id = ?",
-            session["company_id"],
-        )
-        for good in goods_list:
-            added_by = db.execute(
-                "SELECT username FROM users WHERE id = ?", good["added_by"]
-            )
-
-            good["added_by"] = added_by[0]["username"]
+        client.update({k: client[k] or "" for k in optional_clients_fields})
 
     return render_template(
         "inventory.html",
@@ -880,37 +1090,26 @@ def inventory():
 @login_required
 def history():
     """Show billing history of the company"""
+
     query = """
     SELECT
         h.id,
-        CASE
-            WHEN h.type = 'Invoice' THEN 'INV-' || h.bill_num
-            ELSE 'EST-' || h.bill_num
-        END AS bill_num,
+        h.bill_num,
         h.bill_timestamp,
         h.type,
-        COALESCE(b1.name, '') AS billed_to,
-        COALESCE(b2.name, '') AS shipped_to,
+        b1.name AS billed_to,
+        b2.name AS shipped_to,
         h.transport,
         h.payment,
         h.eta,
         h.amount,
-        json_group_array (
-            json_object (
-                'descp',
-                g.descp,
-                'hsn_sac',
-                g.hsn_sac,
-                'uom',
-                g.uom,
-                'rate',
-                g.rate,
-                'gst',
-                g.gst,
-                'qty',
-                hg.qty
-            )
-        ) AS list_of_goods
+        g.descp,
+        g.hsn_sac,
+        g.uom,
+        g.rate,
+        g.gst,
+        hg.qty,
+        hg.amount AS good_amount
     FROM
         history AS h
         LEFT JOIN beneficiaries AS b1 ON h.billed_to = b1.id
@@ -919,32 +1118,56 @@ def history():
         LEFT JOIN goods AS g ON hg.goods_id = g.id
     WHERE
         h.company_id = ?
-    GROUP BY
-        h.id,
-        h.bill_num,
-        h.bill_timestamp,
-        h.type,
-        billed_to,
-        shipped_to,
-        h.transport,
-        h.payment,
-        h.eta,
-        h.amount
     ORDER BY
         h.id DESC;
     """
 
-    history_list = db.execute(query, session["company_id"])
+    try:
+        history_list = db.execute(query, session["company_id"])
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: HIST-BILL-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
     invoice_list = []
     quotation_list = []
+    current_history_id = None
 
     for history in history_list:
-        history["list_of_goods"] = json.loads(history["list_of_goods"])
-        if history["type"] == "Invoice":
-            invoice_list.append(history)
-        else:
-            quotation_list.append(history)
+        if history["id"] != current_history_id:
+            current_history_id = history["id"]
+            entry = {
+                "id": history["id"],
+                "bill_num": bill_num_formatr(
+                    history["type"], history["bill_timestamp"], history["bill_num"]
+                ),
+                "bill_timestamp": history["bill_timestamp"],
+                "billed_to": history["billed_to"] or "",
+                "shipped_to": history["shipped_to"] or "",
+                "transport": history["transport"] or "",
+                "payment": history["payment"] or "",
+                "eta": history["eta"] or "",
+                "amount": history["amount"],
+                "list_of_goods": [],
+            }
+
+            if history["type"] == "Invoice":
+                invoice_list.append(entry)
+            else:
+                quotation_list.append(entry)
+
+        entry["list_of_goods"].append(
+            {
+                "descp": history["descp"],
+                "hsn_sac": history["hsn_sac"] or "",
+                "uom": history["uom"] or "",
+                "rate": history["rate"],
+                "gst": history["gst"],
+                "qty": history["qty"],
+                "amount": history["good_amount"],
+            }
+        )
 
     return render_template(
         "history.html",
@@ -958,71 +1181,115 @@ def history():
 @login_required
 def settings():
     """Show settings options"""
-    company = db.execute(
-        "SELECT custTerms FROM companies WHERE id = ?", session["company_id"]
+    try:
+        company_db = db.execute(
+            "SELECT custTerms FROM companies WHERE id = ?", session["company_id"]
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: SET-TERMS-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
+    return render_template(
+        "settings.html", company=company_db[0], settingsnav=activepage
     )
-    # print(company[0])
-    return render_template("settings.html", company=company[0], settingsnav=activepage)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
-
-    # Forget any user_id
     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-        # Ensure username was submitted
-        regusername = request.form.get("username")
-        if not regusername:
-            return apology("Username not provided")
+        register_data = request.form.to_dict()
 
-        # Query database for username
-        reguser = db.execute(
-            "SELECT * FROM users WHERE username = ?", request.form.get("username")
+        required_fields = ["username", "password", "confirm-password"]
+        optional_fields = ["email", "phno"]
+
+        missing_fields = [
+            field
+            for field in required_fields + optional_fields
+            if register_data.get(field) is None
+        ]
+        if missing_fields:
+            return apology(f"{', '.join(missing_fields)} not provided", 403)
+
+        if len(register_data["username"]) < 5:
+            return apology("Username must be at least 5 characters", 403)
+        try:
+            if db.execute(
+                "SELECT id FROM users WHERE username = ?", register_data["username"]
+            ):
+                return apology("Username already exists", 409)
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: REG-NAME-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
+
+        if not is_valid_password(register_data["password"]):
+            return apology(
+                "Your password must be at least 8 characters long and include characters from at least two of the following categories: letters, numbers, special characters (including spaces), or even emojis.",
+                403,
+            )
+        if register_data["password"] != register_data["confirm-password"]:
+            return apology("Passwords must be same", 403)
+
+        register_data.update(
+            {
+                field: None
+                for field in optional_fields
+                if not register_data[field].strip()
+            }
         )
 
-        # Check username exists
-        if len(reguser) == 1:
-            return apology("Username already exsists")
+        if register_data["email"]:
+            if not is_valid_email(register_data["email"]):
+                return apology("Invalid email address", 400)
+            try:
+                if db.execute(
+                    "SELECT id FROM users WHERE email = ?", register_data["email"]
+                ):
+                    return apology("Email already registered", 409)
+            except Exception as e:
+                return apology(
+                    f"Something went wrong, please try again.\nError-code: REG-EMAIL-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                    500,
+                )
 
-        # # Ensure email was submitted
-        # regemail = request.form.get("email")
-        # if not regemail:
-        #     return apology("must provide Email Address")
+        if register_data["phno"]:
+            if not is_valid_phno(register_data["phno"]):
+                return apology("Invalid phone number", 400)
+            try:
+                if db.execute(
+                    "SELECT id FROM users WHERE phno = ?", register_data["phno"]
+                ):
+                    return apology("Phone number already registered", 409)
+            except Exception as e:
+                return apology(
+                    f"Something went wrong, please try again.\nError-code: REG-PHNO-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                    500,
+                )
 
-        # Ensure password was submitted
-        regpassword = request.form.get("password")
-        if not regpassword:
-            return apology("must provide password")
+        register_data["password"] = generate_password_hash(register_data["password"])
+        required_fields.remove("confirm-password")
+        try:
+            reg_id_db = db.execute(
+                "INSERT INTO users (username, hash, email, phno, type) VALUES(?, ?, ?, ?, ?)",
+                *(register_data[field] for field in required_fields + optional_fields),
+                "admin",
+            )
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: REG-USR-INS-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
 
-        # Ensure confirmation was submitted
-        regconfirm = request.form.get("confirmpassword")
-        if not regconfirm:
-            return apology("must provide password (again)")
+        session["user_id"] = reg_id_db
 
-        if not regpassword == regconfirm:
-            return apology("password must be same")
-
-        regid = db.execute(
-            "INSERT INTO users (username, email, hash, phno, type) VALUES(?, ?, ?, ?, ?)",
-            regusername,
-            request.form.get("email"),
-            generate_password_hash(regpassword),
-            request.form.get("phno"),
-            "admin",
-        )
-
-        # Remember which user has logged in
-        session["user_id"] = regid
-
-        # Redirect user to home page
         flash("User successfully registered")
         return redirect("/compregister")
 
-    # User reached route via GET (as by clicking a link or via redirect)
     else:
         flash(
             "This page is only for Admins who wants to register themselves as well as their company. This page will be followed by a company registration form. For user registration, please contact your company admin. Thank you!"
@@ -1031,261 +1298,299 @@ def register():
 
 
 @app.route("/compregister", methods=["GET", "POST"])
+@user_required
 def compregister():
     """Register company"""
 
-    # Fetch default customer terms
-    defaults = db.execute("SELECT custTerms FROM defaults")
-    defaults = defaults[0]
-
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-        compreg = {}
+        compreg_data = request.form.to_dict()
 
-        # NOT NULL fields
-        # Ensure company name was submitted
-        compreg["name"] = request.form.get("name")
-        if not compreg["name"]:
-            return apology("Company name not provided")
-
-        # Ensure Address:Building number was submitted
-        compreg["addrBno"] = request.form.get("addrBno")
-        if not compreg["addrBno"]:
-            return apology("Address: Building number not provided")
-
-        # Ensure Address:Street name was submitted
-        compreg["addrSt"] = request.form.get("addrSt")
-        if not compreg["addrSt"]:
-            return apology("Address: Street name not provided")
-
-        # Ensure Address:Area/Town was submitted
-        compreg["addrLoc"] = request.form.get("addrLoc")
-        if not compreg["addrLoc"]:
-            return apology("Address: Area/Town not provided")
-
-        # Ensure Address:City/District was submitted
-        compreg["addrDist"] = request.form.get("addrDist")
-        if not compreg["addrDist"]:
-            return apology("Address: City/District not provided")
-
-        # Ensure Address:State was submitted
-        compreg["addrState"] = request.form.get("addrState")
-        if not compreg["addrState"]:
-            return apology("Address: State not provided")
-
-        # Ensure Address:Pincode was submitted
-        compreg["addrPncd"] = request.form.get("addrPncd")
-        if not compreg["addrPncd"]:
-            return apology("Address: Pincode not provided")
-
-        # Ensure Mobile number was submitted
-        compreg["phno1"] = request.form.get("phno1")
-        if not compreg["phno1"]:
-            return apology("Mobile number not provided")
-
-        # Ensure GSTIN was submitted
-        compreg["gstin"] = request.form.get("gstin")
-        if not compreg["gstin"]:
-            return apology("GSTIN not provided")
-
-        # Can be NULL fields
-        # Collect all the optional fields
-        compreg["addrBnm"] = request.form.get("addrBnm")
-        compreg["addrFlno"] = request.form.get("addrFlno")
-        compreg["phno2"] = request.form.get("phno2")
-        compreg["email"] = request.form.get("email")
-        compreg["website"] = request.form.get("website")
-        compreg["bnkAcnm"] = request.form.get("bnkAcnm")
-        compreg["bnkAcno"] = request.form.get("bnkAcno")
-        compreg["bnkNm"] = request.form.get("bnkNm")
-        compreg["bnkIfsc"] = request.form.get("bnkIfsc")
-        compreg["custTerms"] = request.form.get("custTerms")
-
-        # UNIQUE fields
-        # Validate mobile number and check if it exists
-        # Check for a valid mobile number
-        valid = validate_phno(compreg["phno1"])
-        if not valid:
-            return apology("Invalid mobile number")
-
-        # Query database for phno1
-        compregphno1 = db.execute(
-            "SELECT * FROM companies WHERE phno1 = ?", compreg["phno1"]
+        required_fields = (
+            "company-name",
+            "addrBno",
+            "addrSt",
+            "addrLoc",
+            "addrDist",
+            "addrState",
+            "addrPncd",
+            "phno1",
+        )
+        optional_fields = (
+            "addrBnm",
+            "addrFlno",
+            "phno2",
+            "email",
+            "website",
+            "gstin",
+            "bnkAcnm",
+            "bnkAcno",
+            "bnkNm",
+            "bnkIfsc",
+            "custTerms",
         )
 
-        # Check phno1 exists
-        if len(compregphno1) == 1:
-            return apology("Phone number already registered")
+        missing_fields = [
+            field
+            for field in required_fields + optional_fields
+            if compreg_data.get(field) is None
+        ]
+        if missing_fields:
+            return apology(f"{', '.join(missing_fields)} not provided", 403)
 
-        # Validate email address and check if it exists
-        # Check for a valid email address
-        valid = validate_email(compreg["email"])
-        if not valid:
-            return apology("Invalid email address")
+        missing_required_fields = [
+            field for field in required_fields if not compreg_data[field].strip()
+        ]
+        if missing_required_fields:
+            return apology(f"{', '.join(missing_required_fields)} not provided", 403)
 
-        # Query database for email
-        compregemail = db.execute(
-            "SELECT * FROM companies WHERE email = ?", compreg["email"]
+        if not is_valid_pncd(compreg_data["addrPncd"]):
+            return apology("Invalid Pincode", 403)
+
+        if not is_valid_phno(compreg_data["phno1"]):
+            return apology("Invalid mobile number", 403)
+        try:
+            if db.execute(
+                "SELECT id FROM companies WHERE phno1 = ?", compreg_data["phno1"]
+            ):
+                return apology("Mobile number already registered", 409)
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: COMPREG-PHNO-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
+
+        compreg_data.update(
+            {
+                field: None
+                for field in optional_fields
+                if not compreg_data[field].strip()
+            }
         )
 
-        # Check email exists
-        if len(compregemail) == 1:
-            return apology("Email already registered")
+        if compreg_data["phno2"]:
+            if not is_valid_phno(compreg_data["phno2"]):
+                return apology("Invalid phone number", 400)
 
-        # Check if GSTIN already exists
-        # Query database for gstin
-        compreggstin = db.execute(
-            "SELECT * FROM companies WHERE gstin = ?", compreg["gstin"]
-        )
+        if compreg_data["email"]:
+            if not is_valid_email(compreg_data["email"]):
+                return apology("Invalid email", 400)
+            try:
+                if db.execute(
+                    "SELECT id FROM companies WHERE email = ?", compreg_data["email"]
+                ):
+                    return apology("Email already registered", 409)
+            except Exception as e:
+                return apology(
+                    f"Something went wrong, please try again.\nError-code: COMPREG-EMAIL-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                    500,
+                )
 
-        # Check gstin exists
-        if len(compreggstin) == 1:
-            return apology("GSTIN already registered")
+        if compreg_data["gstin"]:
+            try:
+                if db.execute(
+                    "SELECT id FROM companies WHERE gstin = ?", compreg_data["gstin"]
+                ):
+                    return apology("GSTIN already registered", 409)
+            except Exception as e:
+                return apology(
+                    f"Something went wrong, please try again.\nError-code: COMPREG-GSTIN-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                    500,
+                )
 
-        # Check if Bank account number already exists
-        # Query database for bank account number
-        compregbnkAcno = db.execute(
-            "SELECT * FROM companies WHERE bnkAcno = ?", compreg["bnkAcno"]
-        )
+        if compreg_data["bnkAcno"]:
+            try:
+                if db.execute(
+                    "SELECT id FROM companies WHERE bnkAcno = ?",
+                    compreg_data["bnkAcno"],
+                ):
+                    return apology("Bank account number already registered", 409)
+            except Exception as e:
+                return apology(
+                    f"Something went wrong, please try again.\nError-code: COMPREG-BNKACNO-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                    500,
+                )
 
-        # Check bank account number exists
-        if len(compregbnkAcno) == 1:
-            return apology("Bank account number already registered")
+        try:
+            regcomp_id_db = db.execute(
+                "INSERT INTO companies (name, addrBno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, addrBnm, addrFlno, phno2, email, website, gstin, bnkAcnm, bnkAcno, bnkNm, bnkIfsc, custTerms, created_by) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                *(compreg_data[field] for field in required_fields + optional_fields),
+                session["user_id"],
+            )
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: COMPREG-COMP-INS-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
 
-        # Done until here
+        try:
+            db.execute(
+                "UPDATE users SET company_id = ? WHERE id = ?",
+                regcomp_id_db,
+                session["user_id"],
+            )
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: COMPREG-ID-UPD-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
+            )
 
-        regcompid = db.execute(
-            "INSERT INTO companies (name, addrBnm, addrBno, addrFlno, addrSt, addrLoc, addrDist, addrState, addrPncd, phno1, phno2, email, website, gstin, bnkAcnm, bnkAcno, bnkNm, bnkIfsc, custTerms) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            compreg["name"],
-            compreg["addrBnm"],
-            compreg["addrBno"],
-            compreg["addrFlno"],
-            compreg["addrSt"],
-            compreg["addrLoc"],
-            compreg["addrDist"],
-            compreg["addrState"],
-            compreg["addrPncd"],
-            compreg["phno1"],
-            compreg["phno2"],
-            compreg["email"],
-            compreg["website"],
-            compreg["gstin"],
-            compreg["bnkAcnm"],
-            compreg["bnkAcno"],
-            compreg["bnkNm"],
-            compreg["bnkIfsc"],
-            compreg["custTerms"],
-        )
+        session["company_id"] = regcomp_id_db
 
-        # Check if company is registered
-        if not regcompid:
-            return apology("Something went wrong")
-
-        # Remember which company is user related to
-        session["company_id"] = regcompid
-
-        # Update user with company id
-        regcompuserupdate = db.execute(
-            "UPDATE users SET company_id = ? WHERE id = ?",
-            regcompid,
-            session["user_id"],
-        )
-
-        # Check if user is updated with company_id
-        if not regcompuserupdate:
-            return apology("Something went wrong")
-
-        # Redirect user to home page
         flash("Company is successfully registered")
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
-        # print(session)
+        if session.get("company_id"):
+            flash("Company is already registered")
+            return redirect("/")
+
         try:
-            if session["company_id"]:
-                flash("Company is already registered")
-                return redirect("/")
-        finally:
-            return render_template(
-                "compregister.html", registernav=activepage, defaults=defaults
+            defaults_db = db.execute("SELECT custTerms FROM defaults")
+        except Exception as e:
+            return apology(
+                f"Something went wrong, please try again.\nError-code: COMPREG-DEF-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+                500,
             )
+
+        return render_template(
+            "compregister.html", registernav=activepage, defaults=defaults_db[0]
+        )
 
 
 @app.route("/download_pdf/<int:pdf_id>")
+@login_required
 def download_pdf(pdf_id):
-    pdf_data = db.execute(
-        "SELECT bill_num, type, pdf FROM history WHERE id=? AND company_id=?",
-        pdf_id,
-        session["company_id"],
-    )
+    try:
+        pdf_data = db.execute(
+            "SELECT bill_num, bill_timestamp, type, pdf FROM history WHERE id = ? AND company_id = ?",
+            pdf_id,
+            session["company_id"],
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: DOWN-PDF-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
     if pdf_data:
-        if pdf_data[0]["type"] == "Invoice":
-            bill_num_formatted = "INV-" + pdf_data[0]["bill_num"]
-        else:
-            bill_num_formatted = "EST-" + pdf_data[0]["bill_num"]
+        pdf_data = pdf_data[0]
+        bill_type = "Invoice" if pdf_data["type"] == "Invoice" else "Quotation"
+        bill_num_formatted = bill_num_formatr(
+            bill_type, pdf_data["bill_timestamp"], pdf_data["bill_num"]
+        )
 
         return send_file(
-            io.BytesIO(pdf_data[0]["pdf"]),
+            io.BytesIO(pdf_data["pdf"]),
             mimetype="application/pdf",
             download_name=f"{bill_num_formatted}.pdf",
             as_attachment=True,
         )
 
     else:
-        return "PDF not found."
+        return apology("PDF not found", 404)
 
 
 @app.route("/change_password", methods=["POST"])
 def change_password():
-    passwords = request.form
+    passwords_data = request.form
 
-    if not passwords["old_password"]:
-        return apology("Old password not provided")
+    required_fields = ("current-password", "new-password", "confirm-password")
+    missing_fields = [
+        field for field in required_fields if not passwords_data.get(field)
+    ]
+    if missing_fields:
+        return apology(f"{', '.join(missing_fields)} not provided", 403)
 
-    if not passwords["new_password"]:
-        return apology("New password not provided")
+    if not is_valid_password(passwords_data["new-password"]):
+        return apology(
+            "Your password must be at least 8 characters long and include characters from at least two of the following categories: letters, numbers, special characters (including spaces), or even emojis.",
+            403,
+        )
+    if passwords_data["new-password"] != passwords_data["confirm-password"]:
+        return apology("New Password and Confirm Password must be same", 403)
 
-    if not passwords["confirm_password"]:
-        return apology("New password not confirmed")
+    try:
+        old_password_db = db.execute(
+            "SELECT hash FROM users WHERE id = ?", session["user_id"]
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: CHNGPASS-PASS-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
-    if passwords["new_password"] != passwords["confirm_password"]:
-        return apology("New password does not match")
+    if not check_password_hash(
+        old_password_db[0]["hash"], passwords_data["current-password"]
+    ):
+        return apology("Current Password does not match", 400)
 
-    user = db.execute("SELECT hash FROM users WHERE id = ?", session["user_id"])
+    try:
+        db.execute(
+            "UPDATE users SET hash = ? WHERE id = ?",
+            generate_password_hash(passwords_data["new-password"]),
+            session["user_id"],
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: CHNGPASS-PASS-UPD-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
-    if not check_password_hash(user[0]["hash"], passwords["old_password"]):
-        return apology("Old password does not match")
-
-    confirm = db.execute(
-        "UPDATE users SET hash = ? WHERE id = ?",
-        generate_password_hash(passwords["new_password"]),
-        session["user_id"],
-    )
-
-    if not confirm:
-        return apology("Something went wrong")
-    else:
-        flash("Password changed successfully")
-        return redirect("/settings")
+    flash("Password changed successfully")
+    return redirect("/settings")
 
 
 @app.route("/change_terms", methods=["POST"])
 def change_terms():
-    terms = request.form
+    terms_data = request.form
 
-    if not terms["new_terms"]:
-        return apology("Terms and conditions not provided")
+    if not terms_data.get("new-terms"):
+        return apology("New Terms and Conditions not provided", 403)
 
-    confirm = db.execute(
-        "UPDATE companies SET custTerms = ? WHERE id = ?",
-        terms["new_terms"],
-        session["company_id"],
-    )
+    try:
+        db.execute(
+            "UPDATE companies SET custTerms = ? WHERE id = ?",
+            terms_data["new-terms"],
+            session["company_id"],
+        )
+    except Exception as e:
+        return apology(
+            f"Something went wrong, please try again.\nError-code: CHNGTERMS-TERMS-UPD-{type(e).__name__}.\nDEV-INFO: {e.args}",
+            500,
+        )
 
-    if not confirm:
-        return apology("Something went wrong")
-    else:
-        flash("Terms and conditions changed successfully")
-        return redirect("/settings")
+    flash("Terms and conditions changed successfully")
+    return redirect("/settings")
+
+
+import html
+
+
+@app.route("/apology/<string:message>/<code>")
+def apology(message, code):
+    """Render message as an apology to user."""
+    message = html.unescape(message)
+    print(message)
+
+    def escape(s):
+        """
+        Escape special characters.
+
+        https://github.com/jacebrowning/memegen#special-characters
+        """
+        for old, new in [
+            ("-", "--"),
+            (" ", "-"),
+            ("_", "__"),
+            ("?", "~q"),
+            ("%", "~p"),
+            ("#", "~h"),
+            ("/", "~s"),
+            ('"', "''"),
+        ]:
+            s = s.replace(old, new)
+        return s
+
+    return render_template("apology.html", top=code, bottom=escape(message)), code

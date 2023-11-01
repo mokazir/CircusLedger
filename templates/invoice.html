@@ -12,20 +12,20 @@
 		<!-- Client Details -->
 		<div class="row g-0 mt-md-3">
 			<hr class="mb-0" />
-			<label for="billed-company-name" class="col col-form-label fs-4 fw-bold py-0">Client Details</label>
+			<label for="bname" class="col col-form-label fs-4 fw-bold py-0">Client Details</label>
 			<hr class="mt-0" />
 		</div>
 		<!-- Billing Info-->
 		<div class="row g-0">
-			<label for="billed-company-name" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
+			<label for="bname" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
 				>Billing Name</label
 			>
 		</div>
 		<div class="row g-0" id="billing-info">
 			<!-- Billing Name -->
-			<label for="billed-company-name" class="col-md-1 col-form-label">Name</label>
+			<label for="bname" class="col-md-1 col-form-label">Name</label>
 			<div class="col-md-2">
-				<input type="text" class="form-control" id="billed-company-name" name="billed_name" placeholder="Client Name" />
+				<input type="text" class="form-control" id="bname" name="bname" placeholder="Client Name" />
 			</div>
 			<!-- Billing Mobile No. -->
 			<label for="bphno1" class="col-md-1 col-form-label">Mobile No.</label>
@@ -36,7 +36,7 @@
 					name="bphno1"
 					placeholder="Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
@@ -49,7 +49,7 @@
 					name="bphno2"
 					placeholder="Alternate Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
@@ -57,7 +57,7 @@
 			<label for="bgstin" class="col-md-1 col-form-label">GSTIN</label>
 			<div class="col-md-2">
 				<input
-					class="form-control"
+					class="form-control text-uppercase"
 					id="bgstin"
 					name="bgstin"
 					placeholder="GSTIN"
@@ -94,24 +94,30 @@
 				<input class="form-control" name="baddrState" placeholder="State" type="text" />
 			</div>
 			<div class="col-md">
-				<input class="form-control" name="baddrPncd" placeholder="Pincode" type="text" minlength="6" maxlength="6" />
+				<input
+					class="form-control"
+					name="baddrPncd"
+					placeholder="Pincode"
+					type="text"
+					pattern="^[1-9][0-9]{5}$"
+					maxlength="6" />
 			</div>
 		</div>
 		<!-- Shipping Info-->
 		<div class="row g-0">
-			<label for="shipped-company-name" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
+			<label for="sname" class="col col-form-label fs-5 fw-semibold fst-italic pb-0 pb-md-2"
 				>Shipping Name</label
 			>
 		</div>
 		<div class="row g-0" id="shipping-info">
 			<!-- Shipping Name -->
-			<label for="shipped-company-name" class="col-md-1 col-form-label">Name</label>
+			<label for="sname" class="col-md-1 col-form-label">Name</label>
 			<div class="col-md-3">
 				<input
 					type="text"
 					class="form-control"
-					id="shipped-company-name"
-					name="shipped_name"
+					id="sname"
+					name="sname"
 					placeholder="Client Name" />
 			</div>
 			<!-- Shipping Mobile No. -->
@@ -123,7 +129,7 @@
 					name="sphno1"
 					placeholder="Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
@@ -136,9 +142,21 @@
 					name="sphno2"
 					placeholder="Alternate Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
+			</div>
+			<label for="sgstin" class="col-md-1 col-form-label" hidden>GSTIN</label>
+			<div class="col-md-2" hidden>
+				<input
+					class="form-control text-uppercase"
+					id="sgstin"
+					name="sgstin"
+					placeholder="GSTIN"
+					type="text"
+					minlength="15"
+					maxlength="15" />
+				<div class="invalid-feedback">Please enter a valid GSTIN.</div>
 			</div>
 		</div>
 		<!-- Checkbox for Same as Billing info -->
@@ -177,7 +195,13 @@
 				<input class="form-control" name="saddrState" placeholder="State" type="text" />
 			</div>
 			<div class="col-md">
-				<input class="form-control" name="saddrPncd" placeholder="Pincode" type="text" minlength="6" maxlength="6" />
+				<input
+					class="form-control"
+					name="saddrPncd"
+					placeholder="Pincode"
+					type="text"
+					pattern="^[1-9][0-9]{5}$"
+					maxlength="6" />
 			</div>
 		</div>
 		<!-- Checkbox for Same as Billing address -->
@@ -240,7 +264,7 @@
 						name="total-amount"
 						id="total-amount"
 						placeholder="Total Amount"
-						type="text"
+						type="number"
 						readonly />
 				</div>
 			</div>

@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
 	const form = document.querySelector(".needs-validation");
+	const username = document.getElementById("username");
 	const password = document.getElementById("password");
 	const confirmPassword = document.getElementById("confirm-password");
 
@@ -9,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			event.stopPropagation();
 		}
 
+		checkInputValidity(username);
 		checkInputValidity(password);
 		checkInputValidity(confirmPassword);
 	});

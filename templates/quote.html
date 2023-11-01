@@ -1,7 +1,7 @@
-{% extends "layout.html" %} {% block title %} Quote {% endblock %} {% block main %}
+{% extends "layout.html" %} {% block title %} Quotation {% endblock %} {% block main %}
 <div class="flex-grow-1 container-fluid">
 	<!-- Quote Form -->
-	<form action="/quote" method="post" class="text-center needs-validation" id="quote-form" novalidate>
+	<form action="/quotation" method="post" class="text-center needs-validation" id="quote-form" novalidate>
 		<!-- Quote Number and Date-->
 		<div class="row g-0 fs-5 fw-semibold">
 			<div class="col-md text-md-end m-0">Quotation number :&nbsp;</div>
@@ -13,9 +13,9 @@
 		<!-- Quoting Info -->
 		<div class="row g-0 mt-3">
 			<!-- Quoting Name -->
-			<label for="quoted-company-name" class="col-md-2 col-form-label fw-semibold fst-italic">Quotation to</label>
+			<label for="qname" class="col-md-2 col-form-label fw-semibold fst-italic">Quotation to</label>
 			<div class="col-md-2">
-				<input type="text" class="form-control" id="quoted-company-name" name="quoted_name" placeholder="Client Name" />
+				<input type="text" class="form-control" id="qname" name="qname" placeholder="Client Name" />
 			</div>
 			<!-- Quoting Mobile No. -->
 			<label for="phno1" class="col-md-2 col-form-label fw-semibold fst-italic">Mobile No.</label>
@@ -26,7 +26,7 @@
 					name="phno1"
 					placeholder="Mobile number"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
 			</div>
@@ -67,7 +67,7 @@
 						name="total-amount"
 						id="total-amount"
 						placeholder="Total Amount"
-						type="text"
+						type="number"
 						readonly />
 				</div>
 			</div>
@@ -84,7 +84,7 @@
 		<!-- Submit -->
 		<div class="row g-0 mt-3">
 			<div class="col-md">
-				<button class="btn btn-dark btn-sm w-100" id="quote-submit" type="submit">Generate Quotation</button>
+				<button class="btn btn-dark btn-sm w-100" type="submit">Generate Quotation</button>
 			</div>
 		</div>
 	</form>

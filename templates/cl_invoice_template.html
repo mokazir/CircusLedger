@@ -1,0 +1,213 @@
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link
+			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+			rel="stylesheet"
+			integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+			crossorigin="anonymous" />
+		<title>Invoice</title>
+		<meta name="description" content="Invoice template" />
+		<style>
+			table {
+				width: 100%;
+				table-layout: fixed;
+				font-family: "Times New Roman";
+				/* font-size: 14px; */
+			}
+		</style>
+	</head>
+
+	<body>
+		<table class="table table-bordered border-black table-sm text-break">
+			<tbody>
+				<tr>
+					<th colspan="14" class="text-center table-secondary fs-5">TAX INVOICE</th>
+				</tr>
+				<tr>
+					<td colspan="14" class="text-center fw-bold fs-4">{{ company.name }}</td>
+				</tr>
+				<tr>
+					<td colspan="14" class="text-center">{{ company.addr }}</td>
+				</tr>
+				<tr>
+					<td colspan="14" class="text-center">Phone No.: {{ company.phno }}</td>
+				</tr>
+				{% if company.email %}
+				<tr>
+					<td colspan="14" class="text-center">Email: {{ company.email }}</td>
+				</tr>
+				{% endif %}
+				{% if company.website %}
+				<tr>
+					<td colspan="14" class="text-center">Website: {{ company.website }}</td>
+				</tr>
+				{% endif %}
+				<tr>
+					<td colspan="3" class="text-center fw-semibold">Invoice No.:</td>
+					<td colspan="4">{{ invoice_num }}</td>
+					<td colspan="3" class="text-center fw-semibold">Transportation Mode:</td>
+					<td colspan="4">{{ clients_data["transport-mode"] }}</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold">Invoice Date:</td>
+					<td colspan="4">{{ invoice_date }}</td>
+					<td colspan="3" class="text-center fw-semibold">Payment Mode:</td>
+					<td colspan="4">{{ clients_data["payment-mode"] }}</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold">GSTIN:</td>
+					<td colspan="4">{{ company.gstin }}</td>
+					<td colspan="3" class="text-center fw-semibold">ETA:</td>
+					<td colspan="4">{{ clients_data.eta }}</td>
+				</tr>
+				<tr>
+					<td colspan="7" class="text-center fw-semibold table-secondary">Details of Receiver (Invoiced to)</td>
+					<td colspan="7" class="text-center fw-semibold table-secondary">Details of Consignee (Shipped To)</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="text-center fw-semibold">Name:</td>
+					<td colspan="5">{{ clients_data["bname"] }}</td>
+					<td colspan="2" class="text-center fw-semibold">Name:</td>
+					<td colspan="5">{{ clients_data["sname"] }}</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="text-center fw-semibold">Address:</td>
+					<td colspan="5">{{ clients_data.baddr }}</td>
+					<td colspan="2" class="text-center fw-semibold">Address:</td>
+					<td colspan="5">{{ clients_data.saddr }}</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="text-center fw-semibold">GSTIN:</td>
+					<td colspan="5">{{ clients_data.bgstin }}</td>
+					<td colspan="2" class="text-center fw-semibold">GSTIN:</td>
+					<td colspan="5">{{ clients_data.sgstin }}</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="text-center fw-semibold">Mobile No.:</td>
+					<td colspan="5">{{ clients_data.bphno }}</td>
+					<td colspan="2" class="text-center fw-semibold">Mobile No.:</td>
+					<td colspan="5">{{ clients_data.sphno }}</td>
+				</tr>
+				<tr>
+					<td colspan="14"></td>
+				</tr>
+				<tr style="font-size: 14px">
+					<td rowspan="2" class="text-center align-bottom fw-semibold">S.No</td>
+					<td colspan="2" rowspan="2" class="text-center align-bottom fw-semibold">Description of Goods</td>
+					<td rowspan="2" class="text-center align-bottom fw-semibold">HSN/SAC</td>
+					<td rowspan="2" class="text-center align-bottom fw-semibold">Qty</td>
+					<td rowspan="2" class="text-center align-bottom fw-semibold">UOM</td>
+					<td rowspan="2" class="text-center align-bottom fw-semibold">Rate</td>
+					<td rowspan="2" class="text-center align-bottom fw-semibold">Total</td>
+					<td colspan="2" class="text-center align-bottom fw-semibold">CGST</td>
+					<td colspan="2" class="text-center align-bottom fw-semibold">SGST</td>
+					<td colspan="2" class="text-center align-bottom fw-semibold">IGST</td>
+				</tr>
+				<tr style="font-size: 14px">
+					<td class="text-center align-bottom fw-semibold">%</td>
+					<td class="text-center align-bottom fw-semibold">Amount</td>
+					<td class="text-center align-bottom fw-semibold">%</td>
+					<td class="text-center align-bottom fw-semibold">Amount</td>
+					<td class="text-center align-bottom fw-semibold">%</td>
+					<td class="text-center align-bottom fw-semibold">Amount</td>
+				</tr>
+
+				{% for good in goods_data %}
+				<tr style="font-size: 14px">
+					<td class="text-center">{{ loop.index }}</td>
+					<td colspan="2">{{ good.descp }}</td>
+					<td class="text-center">{{ good.hsn_sac }}</td>
+					<td class="text-end">{{ good.qty }}</td>
+					<td class="text-end">{{ good.uom }}</td>
+					<td class="text-end">{{ good.rate_wo_gst }}</td>
+					<td class="text-end">{{ good.amount_wo_gst }}</td>
+					<td class="text-end">{{ good.cgst_percent }}</td>
+					<td class="text-end">{{ good.cgst_amount }}</td>
+					<td class="text-end">{{ good.sgst_percent }}</td>
+					<td class="text-end">{{ good.sgst_amount }}</td>
+					<td class="text-end">{{ good.gst }}</td>
+					<td class="text-end">{{ good.gst_amount }}</td>
+				</tr>
+				{% endfor %}
+
+				<tr style="font-size: 14px">
+					<td colspan="4" class="text-end fw-semibold fs-5">Total :</td>
+					<td class="text-end fw-semibold">{{ genratd_data.total_qty }}</td>
+					<td></td>
+					<td></td>
+					<td class="text-end fw-semibold">{{ genratd_data.total_amount_wo_gst }}</td>
+					<td colspan="2" class="text-end fw-semibold">{{ genratd_data.total_cgst_amount }}</td>
+					<td colspan="2" class="text-end fw-semibold">{{ genratd_data.total_sgst_amount }}</td>
+					<td colspan="2" class="text-end fw-semibold">{{ genratd_data.total_gst_amount }}</td>
+				</tr>
+				<tr>
+					<td colspan="14"></td>
+				</tr>
+				<tr>
+					<td colspan="8" class="text-center fw-semibold table-secondary">Total Invoice amount in words</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">Total Amount</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">{{ genratd_data["total_amount"] }}</td>
+				</tr>
+				<tr>
+					<td colspan="8" class="text-center">{{ genratd_data.total_amount_words }}</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">Round Off</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">{{ genratd_data["round_off"] }}</td>
+				</tr>
+				<tr>
+					<td colspan="8" class="text-center fw-semibold table-secondary">Bank Details</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">Grand Total</td>
+					<td colspan="3" class="text-end fw-semibold table-secondary">{{ genratd_data["grand_total"] | inr }}</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold table-secondary">Account Name:</td>
+					<td colspan="5">{{ company.bnkAcnm }}</td>
+					<td colspan="6" class="text-center fw-semibold table-secondary">TERMS &amp; CONDITIONS</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold table-secondary">Bank A/C No.:</td>
+					<td colspan="5">{{ company.bnkAcno }}</td>
+					<td colspan="6" rowspan="3">{{ company.custTerms }}</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold table-secondary">Bank Name:</td>
+					<td colspan="5">{{ company.bnkNm }}</td>
+				</tr>
+				<tr>
+					<td colspan="3" class="text-center fw-semibold table-secondary">Bank IFSC:</td>
+					<td colspan="5">{{ company.bnkIfsc }}</td>
+				</tr>
+				<tr>
+					<td colspan="5" class="text-center fw-semibold table-secondary">
+						Received the Goods/Services in Good Condition
+					</td>
+					<td colspan="4" rowspan="2" class="text-center fw-semibold table-secondary">
+						Ceritified that the particulars given above are true and correct
+					</td>
+					<td colspan="5" class="text-center fw-semibold table-secondary">Issued by</td>
+				</tr>
+				<tr>
+					<td colspan="5" rowspan="3"></td>
+					<td colspan="5" rowspan="3"></td>
+				</tr>
+				<tr>
+					<td colspan="4" class="text-center fw-semibold table-secondary">Invoice Generated by</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="text-center">Name:</td>
+					<td colspan="2">{{ user.username }}</td>
+				</tr>
+				<tr>
+					<td colspan="5" class="text-center">Customer Signature</td>
+					<td colspan="2" class="text-center">Designation:</td>
+					<td colspan="2">{{ user.type }}</td>
+					<td colspan="5" class="text-center">Authorized Signatory</td>
+				</tr>
+			</tbody>
+		</table>
+		<script
+			src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+			integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+			crossorigin="anonymous"></script>
+	</body>
+</html>

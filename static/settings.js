@@ -1,42 +1,56 @@
-// document.addEventListener("DOMContentLoaded", () => {
-// 	// Get references to DOM elements
-// 	const settings = document.getElementById("settings");
-// 	const settingsNav = document.getElementById("settings-nav");
-// 	const userNav = settingsNav.children[0];
-// 	const companyNav = settingsNav.children[1];
-// 	const user = document.getElementById("user");
-// 	const company = document.getElementById("company");
+document.addEventListener("DOMContentLoaded", () => {
+	const form = document.querySelector(".needs-validation");
+	const currentPassword = document.getElementById("current-password");
+	const newPassword = document.getElementById("new-password");
+	const confirmPassword = document.getElementById("confirm-password");
 
-// 	settings.addEventListener("click", handleClick);
+	form.addEventListener("submit", (event) => {
+		if (!form.checkValidity()) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
 
-// 	/**
-// 	 * Handles the click event.
-// 	 *
-// 	 * @param {Event} event - The event object.
-// 	 */
-// 	function handleClick(event) {
-// 		const target = event.target;
-// 		if (target === userNav && !userNav.classList.contains("active")) {
-// 			toggleActive(userNav, companyNav, user, company);
-// 		} else if (target === companyNav && !companyNav.classList.contains("active")) {
-// 			toggleActive(companyNav, userNav, company, user);
-// 		}
-// 	}
+		checkInputValidity(currentPassword);
+		checkInputValidity(newPassword);
+		checkInputValidity(confirmPassword);
+	});
 
-// 	/**
-// 	 * Toggles the active state of two navigation elements and their corresponding content.
-// 	 *
-// 	 * @param {HTMLElement} nav1 - The first navigation element to toggle.
-// 	 * @param {HTMLElement} nav2 - The second navigation element to toggle.
-// 	 * @param {HTMLElement} content1 - The first content element to toggle.
-// 	 * @param {HTMLElement} content2 - The second content element to toggle.
-// 	 */
-// 	function toggleActive(nav1, nav2, content1, content2) {
-// 		nav2.classList.remove("active");
-// 		nav2.removeAttribute("aria-current");
-// 		content2.setAttribute("hidden", "");
-// 		nav1.classList.add("active");
-// 		nav1.setAttribute("aria-current", "page");
-// 		content1.removeAttribute("hidden");
-// 	}
-// });
+	form.addEventListener("input", (event) => {
+		if (event.target.matches("#new-password, #confirm-password")) {
+			checkInputValidity(newPassword);
+			checkInputValidity(confirmPassword);
+		} else {
+			checkInputValidity(event.target);
+		}
+	});
+
+	function checkInputValidity(input) {
+		const isValid = input.checkValidity();
+		if (input === confirmPassword) {
+			if (isValid && checkPasswordMatch()) {
+				setValidityClasses(input, true);
+			} else {
+				setValidityClasses(input, false);
+			}
+		} else {
+			setValidityClasses(input, isValid);
+		}
+	}
+
+	function checkPasswordMatch() {
+		if (confirmPassword.value === "") {
+			return false;
+		}
+		return newPassword.value === confirmPassword.value;
+	}
+
+	function setValidityClasses(input, isValid) {
+		if (isValid) {
+			input.classList.remove("is-invalid");
+			input.classList.add("is-valid");
+		} else {
+			input.classList.remove("is-valid");
+			input.classList.add("is-invalid");
+		}
+	}
+});

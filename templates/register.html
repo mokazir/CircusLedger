@@ -50,7 +50,7 @@
 			<div class="col-md-12 px-2 mb-2">
 				<div id="passwordHelpBlock" class="form-text m-0">
 					Your password must be at least 8 characters long and include characters from at least two of the following
-					categories: letters, numbers, special characters (including spaces), or even an emojis.
+					categories: letters, numbers, special characters (including spaces), or even emojis.
 				</div>
 			</div>
 			<div class="col form-floating pe-md-1 mb-2">
@@ -65,7 +65,7 @@
 					name="phno"
 					placeholder="10-digit Mobile No.(optional)"
 					type="tel"
-					minlength="10"
+					pattern="^[6-9][0-9]{9}$"
 					maxlength="10" />
 				<label for="phno">Mobile No. (Optional)</label>
 				<div class="invalid-feedback">Please enter a valid mobile number.</div>
