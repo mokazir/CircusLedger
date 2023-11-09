@@ -3,17 +3,21 @@ body {
 	background-color: #eeeeee;
 }
 
+/* Styles for the navigation bar at a min width of 992px */
 @media (min-width: 992px) {
+	/* Styles for the element with the ID "nav-bar-end" */
 	#nav-bar-end {
 		width: 250px;
 	}
 }
 
+/* Styles for the navbar-brand class */
 .navbar-brand {
 	width: 250px;
 }
 
-/* .login {
+/*
+.login {
 	min-width: 100%;
 }
 
@@ -22,11 +26,11 @@ body {
 		min-width: 20%;
 	}
 } */
-/* 
+/*
 .check-feedback {
-    display: none;
-    width: 100%;
-    margin-top: .25rem;
-    font-size: .875em;
-    color: var(--bs-form-invalid-color);
+	display: none;
+	width: 100%;
+	margin-top: .25rem;
+	font-size: .875em;
+	color: var(--bs-form-invalid-color);
 } */

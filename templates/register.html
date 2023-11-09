@@ -28,7 +28,7 @@
 					name="password"
 					placeholder="New Password"
 					type="password"
-					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,24}$"
 					aria-describedby="passwordHelpBlock"
 					required />
 				<label for="password">New Password</label>
@@ -41,7 +41,7 @@
 					name="confirm-password"
 					placeholder="Confirm Password"
 					type="password"
-					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,}$"
+					pattern="^(?=.*[A-Za-z\d])(?=.*[\d\W\s])(?=.*[A-Za-z\W\s])[A-Za-z\d\s\W]{8,24}$"
 					aria-describedby="passwordHelpBlock"
 					required />
 				<label for="confirm-password">Confirm Password</label>
@@ -49,8 +49,8 @@
 			</div>
 			<div class="col-md-12 px-2 mb-2">
 				<div id="passwordHelpBlock" class="form-text m-0">
-					Your password must be at least 8 characters long and include characters from at least two of the following
-					categories: letters, numbers, special characters (including spaces), or even emojis.
+					Your password must be 8-24 characters long and include characters from at least two of the following
+					categories: letters, numbers, special characters (including spaces).
 				</div>
 			</div>
 			<div class="col form-floating pe-md-1 mb-2">

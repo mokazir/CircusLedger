@@ -125,4 +125,3 @@ dmypy.json
 
 # personal addition
 flask_session
-test*

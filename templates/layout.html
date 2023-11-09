@@ -2,36 +2,60 @@
 
 <html lang="en">
 	<head>
+		<!-- Set the character encoding -->
 		<meta charset="utf-8" />
+
+		<!-- Set the initial scale and width for mobile devices -->
 		<meta name="viewport" content="initial-scale=1, width=device-width" />
+
+		<!-- Set the title for the website -->
 		<meta name="title" property="og:title" content="CircusLedger" />
+
+		<!-- Set the type of the website -->
 		<meta name="type" property="og:type" content="website" />
+
+		<!-- Set the description for the website -->
 		<meta name="description" property="og:description" content="A Simple Billing app from DataCircus" />
+
+		<!-- Set the application name -->
 		<meta name="application-name" content="CircusLedger" />
+
+		<!-- Set the image for social media sharing -->
 		<meta name="image" property="og:image" content="/static/dc_logo_cl_text_minprecise.svg" />
+
+		<!-- Set the alt text for the image -->
 		<meta name="image-alt" property="og:image:alt" content="CircusLedger" />
+
+		<!-- Set the Twitter card type -->
 		<meta name="twitter:card" content="summary_large_image" />
 
-		<!-- http://getbootstrap.com/docs/5.3/ -->
+		<!-- Include Bootstrap CSS -->
 		<link
 			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
 			rel="stylesheet"
 			integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
 			crossorigin="anonymous" />
 
+		<!-- Set the favicon for the website -->
 		<link href="/static/dc_logo_minprecise.svg" rel="icon" />
 
+		<!-- Include custom CSS styles -->
 		<link href="/static/styles.css" rel="stylesheet" />
 
+		<!-- Set the title of the webpage -->
 		<title>CircusLedger: {% block title %}{% endblock %}</title>
 	</head>
 
 	<body class="min-vh-100 d-flex flex-column">
+		<!-- Navigation bar -->
 		<nav class="navbar navbar-expand-md border">
 			<div class="container-fluid">
+				<!-- Brand logo -->
 				<a class="navbar-brand me-0" href="/">
+					<!-- CircusLedger logo -->
 					<img src="/static/dc_logo_cl_text_minprecise.svg" alt="CircusLedger" />
 				</a>
+				<!-- Navigation toggle button -->
 				<button
 					class="navbar-toggler"
 					data-bs-target="#nav-bar"
@@ -42,8 +66,10 @@
 					type="button">
 					<span class="navbar-toggler-icon"></span>
 				</button>
+				<!-- Navigation links -->
 				<div class="collapse navbar-collapse" id="nav-bar">
 					{% if session["user_id"] and session["company_id"] %}
+					<!-- Navigation links for authenticated users -->
 					<div class="navbar-nav mx-auto mt-2">
 						<a class="nav-link{{ homenav }}" href="/">Home</a>
 						<a class="nav-link{{ invoicenav }}" href="/invoice">Invoice</a>
@@ -51,33 +77,45 @@
 						<a class="nav-link{{ inventorynav }}" href="/inventory">Inventory</a>
 						<a class="nav-link{{ historynav }}" href="/history">History</a>
 					</div>
+					<!-- Navigation links for authenticated users (end) -->
 					<div class="navbar-nav mt-2 justify-content-end" id="nav-bar-end">
 						<a class="nav-link{{ settingsnav }}" href="/settings">Settings</a>
 						<a class="nav-link" href="/logout">Log Out</a>
 					</div>
 					{% else %}
+					<!-- Navigation links for non-authenticated users -->
 					<div class="navbar-nav ms-auto mt-2">
 						<a class="nav-link{{ registernav }}" href="/register">Register</a>
 						<a class="nav-link{{ loginnav }}" href="/login">Login</a>
 					</div>
+					<!-- Navigation links for non-authenticated users (end) -->
 					{% endif %}
 				</div>
 			</div>
 		</nav>
 
 		{% if get_flashed_messages() %}
+		<!-- Display flashed messages in a header alert -->
 		<header>
 			<div class="alert alert-primary mb-0 text-center" role="alert">{{ get_flashed_messages() | join(" ") }}</div>
 		</header>
 		{% endif %}
 
-		<main class="py-5 flex-grow-1 d-flex">{% block main %}{% endblock %}</main>
+		<main class="py-5 flex-grow-1 d-flex">
+			<!-- Content block -->
+			{% block main %}{% endblock %}
+		</main>
 
-		<footer class="mb-5 small text-center text-body-secondary"><a href="/">CircusLedger</a> by Data Circus</footer>
+		<footer class="mb-5 small text-center text-body-secondary">
+			<!-- Link to CircusLedger homepage -->
+			<a href="/">CircusLedger</a> by Data Circus
+		</footer>
+		<!-- Bootstrap JavaScript -->
 		<script
 			src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
 			integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
 			crossorigin="anonymous"></script>
+		<!-- Custom layout JavaScript -->
 		<script src="/static/layout.js"></script>
 	</body>
 </html>

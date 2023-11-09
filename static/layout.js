@@ -1,5 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const active = document.querySelector('.active');
+// Wait for the DOM to be fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+	// Find the element with the 'active' class
+	const active = document.querySelector(".active");
 
-    active?.setAttribute('aria-current', 'page');
-})
+	// Set the 'aria-current' attribute to 'page' if the element exists
+	active?.setAttribute("aria-current", "page");
+});
