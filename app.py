@@ -1073,11 +1073,13 @@ def quotation():
             session["company_id"],
             session["user_id"],
         )
+        print(ben_insert_params)
 
         # Select or insert beneficiary (client) in the database
         ben_est_id = None
         if clients_data["qname"]:
             ben_est_id = get_or_insert_ben(
+                db,
                 ben_select_query,
                 ben_select_params,
                 ben_insert_query,
@@ -1557,6 +1559,8 @@ def register():
                     f"Something went wrong, please try again.\nError-code: REG-PHNO-RET-{type(e).__name__}.\nDEV-INFO: {e.args}",
                     500,
                 )
+        else:
+            register_data["phno"] = None
 
         # Insert the register data into the database
         register_data["password"] = generate_password_hash(register_data["password"])

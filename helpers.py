@@ -237,6 +237,7 @@ def get_or_insert_ben(db, select_query, select_params, insert_query, insert_para
 
         # If the select query returned a record, return the corresponding "id" value
         # Otherwise, execute the insert query with the insert parameters and return the newly inserted "id" value
+        print(insert_params)
         ben_id = (
             ben_id_db[0]["id"]
             if ben_id_db
